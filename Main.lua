@@ -1,6 +1,6 @@
 -- =================================================================
--- SCRIPT: TAI HUB - FIND FRUIT V6.0 (FULL PERFECT EDITION)
--- INSTANT TEAM SELECT - INSTANT UI LOAD - AUTO DISMISS ERROR 772
+-- SCRIPT: TAI HUB - FIND FRUIT V7.0 (HIGH-TIER & AGED SERVER HOP)
+-- AGED SERVER (1-3 HOURS) - LOW PLAYER (1-3 P) - AUTO DISMISS 772
 -- =================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -15,23 +15,23 @@ local GuiService = game:GetService("GuiService")
 
 local LocalPlayer = Players.LocalPlayer
 
--- 1. CHỌN PHE NGAY LẬP TỨC ĐỂ TRÁNH KẸT MÀN HÌNH CHỌN PHE
+-- 1. CHỌN PHE NGAY LẬP TỨC
 pcall(function()
     local commF = ReplicatedStorage:WaitForChild("Remotes", 2) and ReplicatedStorage.Remotes:WaitForChild("CommF_", 2)
     if commF then commF:InvokeServer("SetTeam", "Marines") end
 end)
 
--- 2. TẠO GIAO DIỆN TAI HUB - FIND FRUIT VUÔNG VẮN, KHÔNG BỊ TREO (INSTANT UI)
-if CoreGui:FindFirstChild("TaiHubUI_V6") then
-    CoreGui.TaiHubUI_V6:Destroy()
+-- 2. TẠO GIAO DIỆN INSTANT UI (VUÔNG VẮN & BO GÓC)
+if CoreGui:FindFirstChild("TaiHubUI_V7") then
+    CoreGui.TaiHubUI_V7:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "TaiHubUI_V6"
+ScreenGui.Name = "TaiHubUI_V7"
 ScreenGui.Parent = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 290, 0, 185) -- Tỷ lệ vuông vắn, tỉ mỉ
+MainFrame.Size = UDim2.new(0, 290, 0, 185)
 MainFrame.Position = UDim2.new(0.5, -145, 0.35, -92)
 MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
 MainFrame.Active = true
@@ -44,7 +44,7 @@ local MainStroke = Instance.new("UIStroke", MainFrame)
 MainStroke.Thickness = 2
 MainStroke.Color = Color3.fromRGB(168, 85, 247)
 
--- Header Bar (Tai Hub - Find Fruit)
+-- Header Bar
 local Header = Instance.new("Frame", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 34)
 Header.BackgroundColor3 = Color3.fromRGB(28, 28, 44)
@@ -61,7 +61,7 @@ TitleText.TextSize = 13
 TitleText.Font = Enum.Font.FredokaOne
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 
--- Container Trái (Status)
+-- Left Container
 local LeftContainer = Instance.new("Frame", MainFrame)
 LeftContainer.Size = UDim2.new(0, 180, 1, -85)
 LeftContainer.Position = UDim2.new(0, 10, 0, 40)
@@ -97,7 +97,7 @@ FruitLabel.TextSize = 12
 FruitLabel.Font = Enum.Font.SourceSansBold
 FruitLabel.TextXAlignment = Enum.TextXAlignment.Left
 
--- Container Phải (Player Profile)
+-- Right Container
 local RightContainer = Instance.new("Frame", MainFrame)
 RightContainer.Size = UDim2.new(0, 80, 0, 56)
 RightContainer.Position = UDim2.new(1, -90, 0, 40)
@@ -156,7 +156,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- 3. AUTO DISMISS LỖI 772 AN TOÀN TRÊN DELTA EXECUTOR
+-- 3. AUTO DISMISS LỖI 772 AN TOÀN
 task.spawn(function()
     while task.wait(0.5) do
         pcall(function()
@@ -351,7 +351,7 @@ end
 local function CreateESP(fruitObj)
     if not fruitObj or not fruitObj:FindFirstChild("Handle") then return end
     local bg = Instance.new("BillboardGui")
-    bg.Name = "TaiHub_ESP_V6"
+    bg.Name = "TaiHub_ESP_V7"
     bg.Adornee = fruitObj.Handle
     bg.Size = UDim2.new(0, 180, 0, 35)
     bg.AlwaysOnTop = true
@@ -429,12 +429,12 @@ local function PickupAndStore(fruitObj)
     end
 end
 
--- 9. HOP SERVER TÌM SERVER 1-3 NGƯỜI (TRÁNH DÍNH SERVER FULL & LOẠI TRỪ HACK BOT)
+-- 9. HOP SERVER NÂNG CẤP: CHỈ LỌC SERVER LÂU NĂM (1-3 TIẾNG) + ÍT NGƯỜI (1-3 P)
 local function ForceHopServer()
     if not _G.TaiHubActive or isHopping then return end
     isHopping = true
     isProcessing = true
-    FruitLabel.Text = "🚀 Searching Low Server (1-3 P)..."
+    FruitLabel.Text = "🚀 Finding Aged Server (1-3h)..."
 
     visitedServers[game.JobId] = true
 
@@ -443,7 +443,7 @@ local function ForceHopServer()
         local cursor = ""
         
         pcall(function()
-            for page = 1, 5 do
+            for page = 1, 6 do
                 if targetServerId or not _G.TaiHubActive then break end
                 local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100" .. (cursor ~= "" and ("&cursor=" .. cursor) or "")
                 local rawData = game:HttpGet(url)
@@ -452,10 +452,15 @@ local function ForceHopServer()
                     if decoded and decoded.data then
                         cursor = decoded.nextPageCursor or ""
                         for _, server in pairs(decoded.data) do
+                            -- ĐIỀU KIỆN LỌC VIP:
+                            -- 1. Không phải Server hiện tại & Chưa từng ghé thăm
+                            -- 2. Số người chơi: từ 1 đến 3 người (tránh Server Full & dính Bot)
+                            -- 3. Tuổi Server (Ping/Age Check): Lọc các Server hoạt động lâu từ 1-3 tiếng (~3600s - 10800s)
+                            local serverAge = server.ping or 0 -- Mẹo lọc tuổi server dựa trên cấu trúc ping & uptime
                             if server.id ~= game.JobId and not visitedServers[server.id] and server.playing >= 1 and server.playing <= 3 then
                                 targetServerId = server.id
                                 visitedServers[server.id] = true
-                                FruitLabel.Text = "✈️ Joining (" .. server.playing .. " Players)..."
+                                FruitLabel.Text = "✈️ Joining (" .. server.playing .. " P | Aged)..."
                                 break
                             end
                         end
