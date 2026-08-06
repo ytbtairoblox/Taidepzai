@@ -1,6 +1,6 @@
 -- =================================================================
--- SCRIPT: TAI HUB FIND FRUIT (FULL TWEEN + NOCLIP + ESP)
--- AUTO TWEEN -> NOCLIP -> PICKUP -> STORE -> SMART HOP ON STOLEN
+-- SCRIPT: TAI HUB FIND FRUIT (FINAL ULTRA PERFECT FIX)
+-- FIX GHOST FRUIT / WATER TELEPORT / HARDENED ESP / INSTANT HOP
 -- =================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -26,7 +26,7 @@ if queue_on_teleport and getgenv().TaiHubScriptSource then
     ]])
 end
 
--- GET CHARACTER & HUMANOID
+-- GET CHARACTER
 local function getCharacter()
     local char = LocalPlayer.Character
     if char then
@@ -39,7 +39,7 @@ local function getCharacter()
     return nil, nil, nil
 end
 
--- AUTO SET TEAM MARINES
+-- AUTO SET TEAM
 pcall(function()
     local commF = ReplicatedStorage:WaitForChild("Remotes", 3) and ReplicatedStorage.Remotes:WaitForChild("CommF_", 3)
     if commF then commF:InvokeServer("SetTeam", "Marines") end
@@ -164,8 +164,6 @@ _G.TaiHubActive = true
 local isProcessing = false
 local isHopping = false
 local blacklistedFruits = {}
-local espFolder = Instance.new("Folder", ScreenGui)
-espFolder.Name = "FruitESPFolder"
 
 ToggleBtn.MouseButton1Click:Connect(function()
     _G.TaiHubActive = not _G.TaiHubActive
@@ -182,40 +180,65 @@ ToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- HỆ THỐNG ESP TRÁI CÂY
-local function UpdateFruitESP()
-    espFolder:ClearAllChildren()
-    if not _G.TaiHubActive then return end
+-- HÀM KIỂM TRA TRÁI THỰC TẾ (LOẠI BỎ TẬN GỐC TRÁI ẢO DƯỚI NƯỚC)
+local function IsRealFruit(obj)
+    if not obj or not obj.Parent then return false end
+    if not (obj:IsA("Tool") or obj:IsA("Model")) then return false end
+    if not string.find(obj.Name, "Fruit") then return false end
+    if blacklistedFruits[obj] then return false end
 
-    local _, hrp = getCharacter()
+    local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildOfClass("BasePart")
+    if not handle then return false end
+
+    -- Trái ảo thường bị giấu dưới mực nước sâu (< -100) hoặc có Transparency = 1
+    if handle.Position.Y < -50 then return false end
+    if handle.Transparency >= 0.9 then return false end
+
+    return true, handle
+end
+
+-- HỆ THỐNG ESP TRÁI CÂY CHUẨN CŨ (XUYÊN TƯỜNG + HIỆN TÊN TRỰC TIẾP LÊN OBJECT)
+local function UpdateFruitESP()
     for _, obj in pairs(Workspace:GetChildren()) do
-        if (obj:IsA("Tool") or obj:IsA("Model")) and string.find(obj.Name, "Fruit") then
-            local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildOfClass("BasePart")
-            if handle then
-                local dist = hrp and math.floor((handle.Position - hrp.Position).Magnitude / 3.57) or 0
-                
+        local isReal, handle = IsRealFruit(obj)
+        if isReal and handle then
+            if not handle:FindFirstChild("FruitESP_UI") then
                 local billboard = Instance.new("BillboardGui")
-                billboard.Name = "FruitESP"
+                billboard.Name = "FruitESP_UI"
                 billboard.Adornee = handle
-                billboard.Size = UDim2.new(0, 150, 0, 30)
+                billboard.Size = UDim2.new(0, 200, 0, 40)
                 billboard.AlwaysOnTop = true
-                billboard.ExtentsOffset = Vector3.new(0, 2, 0)
-                billboard.Parent = espFolder
+                billboard.ExtentsOffset = Vector3.new(0, 2.5, 0)
+                billboard.Parent = handle
 
                 local label = Instance.new("TextLabel", billboard)
                 label.Size = UDim2.new(1, 0, 1, 0)
                 label.BackgroundTransparency = 1
-                label.Text = "🍓 " .. obj.Name .. " [" .. dist .. "m]"
-                label.TextColor3 = Color3.fromRGB(255, 75, 75)
+                label.TextColor3 = Color3.fromRGB(255, 40, 40)
                 label.TextStrokeTransparency = 0
-                label.TextSize = 13
+                label.TextSize = 14
                 label.Font = Enum.Font.SourceSansBold
+
+                local highlight = Instance.new("Highlight")
+                highlight.Name = "FruitESP_Glow"
+                highlight.Adornee = obj
+                highlight.FillColor = Color3.fromRGB(255, 0, 100)
+                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
+                highlight.FillTransparency = 0.4
+                highlight.Parent = handle
+            end
+
+            local espUI = handle:FindFirstChild("FruitESP_UI")
+            if espUI and espUI:FindFirstChildOfClass("TextLabel") then
+                local _, hrp = getCharacter()
+                local dist = hrp and math.floor((handle.Position - hrp.Position).Magnitude / 3.57) or 0
+                espUI.TextLabel.Text = "🍎 " .. obj.Name .. "\n[" .. dist .. "m]"
             end
         end
     end
 end
 
--- BACKGROUND TASK LOOP
+-- BACKGROUND LOOP
 task.spawn(function()
     while task.wait(0.3) do
         if _G.TaiHubActive then
@@ -231,9 +254,9 @@ task.spawn(function()
             ServerLabel.Text = "🌐 Server Checked: " .. getgenv().TaiHubData.ServerCount
             PlayersOnlineLabel.Text = "👥 Players Online: " .. #Players:GetPlayers() .. " (Target: 1-5)"
 
-            UpdateFruitESP()
+            pcall(UpdateFruitESP)
 
-            -- Clear Error Prompts
+            -- Auto Clear Error Prompt
             pcall(function()
                 local promptGui = CoreGui:FindFirstChild("RobloxPromptGui")
                 if promptGui then
@@ -254,21 +277,17 @@ task.spawn(function()
     end
 end)
 
--- LỌC TRÁI THỰC TẾ
+-- TÌM DẠNG TRÁI HỢP LỆ
 local function GetValidFruitsOnMap()
     local validFruits = {}
     local _, hrp = getCharacter()
     if not hrp then return validFruits end
 
     for _, obj in pairs(Workspace:GetChildren()) do
-        if (obj:IsA("Tool") or obj:IsA("Model")) and string.find(obj.Name, "Fruit") and not blacklistedFruits[obj] then
-            local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildOfClass("BasePart")
-            if handle then
-                local dist = (handle.Position - hrp.Position).Magnitude
-                if dist < 50000 then
-                    table.insert(validFruits, { object = obj, handle = handle, distance = dist })
-                end
-            end
+        local isReal, handle = IsRealFruit(obj)
+        if isReal and handle then
+            local dist = (handle.Position - hrp.Position).Magnitude
+            table.insert(validFruits, { object = obj, handle = handle, distance = dist })
         end
     end
 
@@ -276,7 +295,7 @@ local function GetValidFruitsOnMap()
     return validFruits
 end
 
--- LẤY TRÁI TRONG TÚI
+-- KIỂM TRA TRÁI TRONG TÚI
 local function GetFruitInInventory()
     local char = getCharacter()
     for _, container in pairs({LocalPlayer.Backpack, char}) do
@@ -291,7 +310,7 @@ local function GetFruitInInventory()
     return nil
 end
 
--- SMART HOP SERVER (1 - 5 PLAYERS)
+-- SMART HOP SERVER
 local function SmartHopServer()
     if not _G.TaiHubActive or isHopping then return end
     isHopping = true
@@ -365,16 +384,14 @@ local function SmartHopServer()
     end)
 end
 
--- TWEEN VÀO GIỮA TRÁI + BẬT NOCLIP CHỐNG KẸT
+-- TWEEN VÀO GIỮA TRÁI
 local function SafeTweenToFruit(fruitData)
     local handle = fruitData.handle
     local targetFruit = fruitData.object
-    if not handle or not targetFruit or not targetFruit.Parent then return "STOLEN" end
 
     local char, hrp = getCharacter()
     if not char or not hrp then return "ERROR" end
 
-    -- BẬT NOCLIP LIÊN TỤC TRONG LÚC TWEEN
     local noclipConn = RunService.Stepped:Connect(function()
         local c = getCharacter()
         if c then
@@ -384,7 +401,8 @@ local function SafeTweenToFruit(fruitData)
         end
     end)
 
-    local speed = 350 -- Tốc độ bay chuẩn anti-cheat
+    local speed = 350
+    local tweenStart = tick()
 
     while true do
         local currentChar, currentHrp = getCharacter()
@@ -398,8 +416,8 @@ local function SafeTweenToFruit(fruitData)
             return "CANCEL"
         end
 
-        -- Nếu trái bị cướp / biến mất giữa đường
-        if not targetFruit or not targetFruit.Parent or not handle then
+        -- Nếu trái bị mất hoặc quá 12s không tới được -> Bị cướp/lỗi
+        if not IsRealFruit(targetFruit) or (tick() - tweenStart > 12) then
             if noclipConn then noclipConn:Disconnect() end
             return "STOLEN"
         end
@@ -408,7 +426,6 @@ local function SafeTweenToFruit(fruitData)
         local targetPos = handle.Position
         local dist = (targetPos - currentPos).Magnitude
 
-        -- Khi đến sát tâm trái dưới 3m thì hoàn thành Tween
         if dist <= 3 then break end
 
         local dt = RunService.Heartbeat:Wait()
@@ -425,7 +442,7 @@ local function SafeTweenToFruit(fruitData)
     return "SUCCESS"
 end
 
--- TIẾN HÀNH LỤM VÀ CẤT VÀO RƯƠNG
+-- THỰC HIỆN LỤM VÀ CẤT
 local function PickupAndStoreVerified(fruitData)
     local fruitObj = fruitData.object
     local handle = fruitData.handle
@@ -433,28 +450,25 @@ local function PickupAndStoreVerified(fruitData)
     if not char or not hrp or not handle then return end
 
     local pickupTimer = tick()
-    while (tick() - pickupTimer) < 3 do
-        if not fruitObj or not fruitObj.Parent then
-            FruitLabel.Text = "⚠️ Target Stolen by Someone!"
-            DetailLabel.Text = "🔄 Auto Hopping Server..."
+    while (tick() - pickupTimer) < 2.5 do
+        if not IsRealFruit(fruitObj) then
+            FruitLabel.Text = "⚠️ Target Disappeared!"
+            DetailLabel.Text = "🔄 Hopping Server..."
             SmartHopServer()
             return
         end
 
-        -- Ép tâm nhân vật trùng khớp tâm trái
         hrp.CFrame = handle.CFrame
         handle.CanCollide = false
 
-        -- Gọi Touch Interest liên tục
         if firetouchinterest then
             firetouchinterest(hrp, handle, 0)
             task.wait(0.02)
             firetouchinterest(hrp, handle, 1)
         end
 
-        -- Remote Pick
         pcall(function()
-            local commF = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
+            local commF = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_", 2)
             if commF then commF:InvokeServer("PickFruit", fruitObj) end
         end)
 
@@ -467,7 +481,10 @@ local function PickupAndStoreVerified(fruitData)
 
     local tool = GetFruitInInventory()
     if not tool then
+        -- Đến nơi mà không lụm được (trái ảo) -> Cho vào Blacklist và Hop Server ngay!
         blacklistedFruits[fruitObj] = true
+        FruitLabel.Text = "⚠️ Pickup Failed (Ghost Fruit)!"
+        DetailLabel.Text = "🔄 Auto Hopping Server..."
         SmartHopServer()
         return
     end
@@ -486,7 +503,7 @@ local function PickupAndStoreVerified(fruitData)
     local storeAttempts = 0
     local storeStart = tick()
     
-    while GetFruitInInventory() and (tick() - storeStart) < 6 do
+    while GetFruitInInventory() and (tick() - storeStart) < 5 do
         storeAttempts = storeAttempts + 1
         StoreAttemptLabel.Text = "📦 Store Attempts: " .. storeAttempts
         
@@ -494,7 +511,7 @@ local function PickupAndStoreVerified(fruitData)
         if currentTool and remote then
             remote:InvokeServer("StoreFruit", currentTool.Name, currentTool)
         end
-        task.wait(0.25)
+        task.wait(0.2)
     end
 
     if not GetFruitInInventory() then
@@ -506,7 +523,7 @@ local function PickupAndStoreVerified(fruitData)
         blacklistedFruits[fruitObj] = true
     end
 
-    -- Xử lý xong thì tự chuyển Server
+    -- Hoàn tất đổi server tiếp
     SmartHopServer()
 end
 
@@ -530,7 +547,8 @@ task.spawn(function()
                         PickupAndStoreVerified(targetData)
                         isProcessing = false
                     elseif flyResult == "STOLEN" then
-                        FruitLabel.Text = "⚠️ Target Disappeared!"
+                        blacklistedFruits[targetData.object] = true
+                        FruitLabel.Text = "⚠️ Target Stolen/Gone!"
                         DetailLabel.Text = "🔄 Hopping Server..."
                         SmartHopServer()
                     else
