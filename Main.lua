@@ -1,6 +1,6 @@
 -- =================================================================
 -- SCRIPT: TAI HUB FIND FRUIT (PERFECT EDITION)
--- DIRECT TWEEN - ERROR PROMPT AUTO FIX - SAFE SERVER HOP
+-- STRICT 1-5 PLAYERS - ANTI LOOP SAME SERVER - ANTI EXPLOITER SERVER
 -- =================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -150,8 +150,8 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- 5. BỘ ĐẾM VÀ BLACKLIST DATA
-local RESET_TIMEOUT = 3600
+-- 5. BỘ ĐẾM VÀ BLACKLIST DATA LƯU GIỮ BỀN VỮNG
+local RESET_TIMEOUT = 7200 -- 2 tiếng mới xóa bớt cache server cũ
 if not getgenv().TaiHubData then
     getgenv().TaiHubData = { ServerCount = 1, StartTime = os.time(), LastActive = os.time(), BlacklistedServers = {} }
 else
@@ -165,12 +165,13 @@ else
     getgenv().TaiHubData.LastActive = currentTime
 end
 
+-- Đưa server hiện tại vào Blacklist ngay lập tức để không bao giờ bị hop lại
+getgenv().TaiHubData.BlacklistedServers[game.JobId] = true
+
 local function AddServerToBlacklist(jobId)
-    local list = getgenv().TaiHubData.BlacklistedServers
-    list[jobId] = true
-    local count = 0
-    for _ in pairs(list) do count = count + 1 end
-    if count > 150 then getgenv().TaiHubData.BlacklistedServers = {} end
+    if jobId then
+        getgenv().TaiHubData.BlacklistedServers[jobId] = true
+    end
 end
 
 _G.TaiHubActive = true
@@ -195,7 +196,7 @@ ToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Background Task Loop (Auto Dismiss Error Prompt Mã Lỗi 2)
+-- Background Task Loop (Auto Dismiss Error Prompt & Sync)
 AddConnection(task.spawn(function()
     while task.wait(0.3) do
         if _G.TaiHubActive then
@@ -209,7 +210,7 @@ AddConnection(task.spawn(function()
             TimeLabel.Text = string.format("⏳ Elapsed: %02d:%02d:%02d | 📶 Ping: %d ms", math.floor(elapsed/3600), math.floor((elapsed%3600)/60), elapsed%60, currentPing)
             ServerLabel.Text = "🌐 Server Checked: " .. getgenv().TaiHubData.ServerCount
 
-            -- SỬA LỖI MÃ LỖI 2 (POPUPS KẾT NỐI THẤT BẠI)
+            -- TỰ ĐỘNG BỎ POPUP LỖI KẾT NỐI MÃ LỖI 2
             pcall(function()
                 local promptGui = CoreGui:FindFirstChild("RobloxPromptGui")
                 if promptGui then
@@ -294,8 +295,7 @@ local function SafeLerpTween(targetFruit)
         end
     end))
 
-    local targetPos = targetFruit.Handle.Position
-    local speed = 300 -- Tốc độ di chuyển mượt mà
+    local speed = 300
 
     while true do
         local currentChar, currentHrp, currentHum = getCharacter()
@@ -489,23 +489,25 @@ local function PickupAndStoreVerified(fruitObj)
     end
 end
 
--- 10. SMART HOP SERVER ENGINE (CHỐNG MÃ LỖI 2 CỰC TỐT)
+-- 10. SMART HOP SERVER ENGINE (CHỈ CHỌN SERVER 1 - 5 NGƯỜI, CHỐNG LẶP SỐ 1)
 local function SmartHopServer()
     if not _G.TaiHubActive or isHopping then return end
     isHopping = true
     isProcessing = true
 
     AddServerToBlacklist(game.JobId)
-    FruitLabel.Text = "✈️ Status: Searching Server..."
+    FruitLabel.Text = "✈️ Status: Searching Server (1-5 Players)..."
 
     local function AttemptHop()
         local targetServerId = nil
         local targetPlayerCount = 0
         local cursor = ""
+        local validCandidateServers = {}
 
         pcall(function()
-            for page = 1, 5 do
-                if targetServerId or not _G.TaiHubActive then break end
+            -- Quét ngẫu nhiên sâu hơn để bỏ qua server cũ
+            for page = 1, 10 do
+                if not _G.TaiHubActive then break end
                 local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100" .. (cursor ~= "" and ("&cursor=" .. cursor) or "")
                 local rawData = game:HttpGet(url)
                 if rawData then
@@ -514,26 +516,39 @@ local function SmartHopServer()
                         cursor = decoded.nextPageCursor or ""
                         for _, server in pairs(decoded.data) do
                             local playing = server.playing or 0
-                            local maxPlayers = server.maxPlayers or 12
                             
-                            -- Chọn server ổn định từ 2 đến 8 người chơi
-                            if server.id ~= game.JobId and not getgenv().TaiHubData.BlacklistedServers[server.id] and playing >= 2 and playing <= 8 and playing < maxPlayers then
-                                targetServerId = server.id
-                                targetPlayerCount = playing
-                                AddServerToBlacklist(server.id)
-                                break
+                            -- ĐIỀU KIỆN LỌC NGHIÊM NGẶT:
+                            -- 1. Không trùng server hiện tại
+                            -- 2. Chưa từng bị lưu trong Blacklist
+                            -- 3. Số người chơi CHUẨN TỪ 1 ĐẾN 5 NGƯỜI
+                            if server.id ~= game.JobId 
+                               and not getgenv().TaiHubData.BlacklistedServers[server.id] 
+                               and playing >= 1 and playing <= 5 then
+                                
+                                table.insert(validCandidateServers, { id = server.id, playing = playing })
                             end
                         end
                     end
                 end
-                task.wait(0.1)
+                
+                -- Tìm thấy đủ danh sách ứng viên thì ngắt quét ngay
+                if #validCandidateServers >= 3 then break end
+                task.wait(0.05)
             end
         end)
+
+        -- Chọn ngẫu nhiên 1 trong các server đạt tiêu chuẩn để tránh trùng lặp
+        if #validCandidateServers > 0 then
+            local chosen = validCandidateServers[math.random(1, #validCandidateServers)]
+            targetServerId = chosen.id
+            targetPlayerCount = chosen.playing
+            AddServerToBlacklist(targetServerId)
+        end
 
         if targetServerId and _G.TaiHubActive then
             FruitLabel.Text = "✈️ Status: Initiating Teleport..."
             DetailLabel.Text = "🌐 Target Server: [" .. targetPlayerCount .. " Players]"
-            task.wait(0.5)
+            task.wait(0.3)
             TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServerId, LocalPlayer)
             return true
         end
@@ -551,7 +566,7 @@ local function SmartHopServer()
 
     local success = AttemptHop()
     if not success and _G.TaiHubActive then
-        DetailLabel.Text = "⚠️ Fallback random hopping..."
+        DetailLabel.Text = "⚠️ Searching deep fallback server..."
         task.wait(0.5)
         TeleportService:Teleport(game.PlaceId, LocalPlayer)
     end
@@ -600,7 +615,7 @@ AddConnection(task.spawn(function()
                 else
                     FruitLabel.Text = "🌐 Status: Map Clean!"
                     TargetLabel.Text = "🍎 Target: None"
-                    DetailLabel.Text = "✈️ No fruit in cache. Hopping..."
+                    DetailLabel.Text = "✈️ No fruit in Map. Hopping..."
                     SmartHopServer()
                 end
             end
