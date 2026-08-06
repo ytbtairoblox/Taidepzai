@@ -1,5 +1,5 @@
 -- =================================================================
--- SCRIPT: TAI HUB FIND FRUIT (FULL FIX: ALWAYS TWEEN TO ANY FRUIT)
+-- SCRIPT: TAI HUB FIND FRUIT (ULTIMATE PERFECT ENGINE - FIXED TWEEN)
 -- AUTO TWEEN -> NOCLIP -> HARD UNANCHOR PICKUP -> STORE -> SMART HOP
 -- =================================================================
 
@@ -181,9 +181,9 @@ ToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- BỘ LỌC CHUẨN: CHỈ CẦN LÀ TRÁI CÂY TRÊN MAP LÀ TWEEN NGAY (KHÔNG BỎ SÓT)
+-- BỘ LỌC KIỂM TRA TRÁI CHUẨN
 local function IsRealFruit(obj)
-    if not obj or not obj.Parent then return false end
+    if not obj or not obj.Parent or obj.Parent ~= Workspace then return false end
     if not (obj:IsA("Tool") or obj:IsA("Model")) then return false end
     if not string.find(obj.Name, "Fruit") then return false end
     if blacklistedFruits[obj] then return false end
@@ -194,7 +194,7 @@ local function IsRealFruit(obj)
     return true, handle
 end
 
--- ESP HIỆN TÊN VÀ KHỎANG CÁCH TRỰC TIẾP LÊN TRÁI CÂY
+-- ESP HIỆN TÊN VÀ KHỎANG CÁCH
 local function UpdateFruitESP()
     for _, obj in pairs(Workspace:GetChildren()) do
         local isReal, handle = IsRealFruit(obj)
@@ -381,7 +381,7 @@ local function SmartHopServer()
     end)
 end
 
--- TWEEN TỚI TRÁI VÀ NOCLIP XUYÊN ĐỊA HÌNH
+-- HÀM TWEEN HOÀN THIỆN: DYNAMIC TIMEOUT & ANTI-CANCEL TWEEN
 local function SafeTweenToFruit(fruitData)
     local handle = fruitData.handle
     local targetFruit = fruitData.object
@@ -399,6 +399,9 @@ local function SafeTweenToFruit(fruitData)
     end)
 
     local speed = 350
+    local initialDist = (handle.Position - hrp.Position).Magnitude
+    -- Tính toán thời gian cho phép bay linh hoạt: Khoảng cách / Tốc độ + 10 giây dự phòng
+    local maxFlightTime = (initialDist / speed) + 10
     local tweenStart = tick()
 
     while true do
@@ -413,16 +416,22 @@ local function SafeTweenToFruit(fruitData)
             return "CANCEL"
         end
 
-        if not IsRealFruit(targetFruit) or (tick() - tweenStart > 12) then
+        -- CHỈ HỦY NẾU TRÁI XÓA KHỎI WORKSPACE HOẶC VƯỢT QUÁ THỜI GIAN BAY ĐÍNH KÈM
+        if not IsRealFruit(targetFruit) then
             if noclipConn then noclipConn:Disconnect() end
             return "STOLEN"
+        end
+
+        if (tick() - tweenStart) > maxFlightTime then
+            if noclipConn then noclipConn:Disconnect() end
+            return "TIMEOUT"
         end
 
         local currentPos = currentHrp.Position
         local targetPos = handle.Position
         local dist = (targetPos - currentPos).Magnitude
 
-        if dist <= 2.5 then break end
+        if dist <= 3 then break end
 
         local dt = RunService.Heartbeat:Wait()
         local moveStep = math.min(dist, speed * dt)
@@ -448,7 +457,7 @@ local function PickupAndStoreVerified(fruitData)
     DetailLabel.Text = "💥 Unanchoring & Picking Fruit..."
 
     local pickupTimer = tick()
-    while (tick() - pickupTimer) < 3 do
+    while (tick() - pickupTimer) < 3.5 do
         if not IsRealFruit(fruitObj) then
             FruitLabel.Text = "⚠️ Target Stolen/Gone!"
             DetailLabel.Text = "🔄 Auto Hopping..."
@@ -543,11 +552,11 @@ task.spawn(function()
                     if flyResult == "SUCCESS" then
                         PickupAndStoreVerified(targetData)
                         isProcessing = false
-                    elseif flyResult == "STOLEN" then
+                    elseif flyResult == "STOLEN" or flyResult == "TIMEOUT" then
                         blacklistedFruits[targetData.object] = true
-                        FruitLabel.Text = "⚠️ Target Stolen/Gone!"
-                        DetailLabel.Text = "🔄 Hopping Server..."
-                        SmartHopServer()
+                        FruitLabel.Text = "⚠️ Fruit Lost/Timeout!"
+                        DetailLabel.Text = "🔄 Checking Next Target..."
+                        isProcessing = false
                     else
                         isProcessing = false
                     end
