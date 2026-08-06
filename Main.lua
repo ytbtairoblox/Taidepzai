@@ -1,6 +1,6 @@
 -- =================================================================
--- SCRIPT: TAI HUB FIND FRUIT (FAST PICK & INSTANT STORE EDITION)
--- SMOOTH FAST TWEEN -> INSTANT TOUCH PICK -> FAST STORE -> SMART HOP
+-- SCRIPT: TAI HUB FIND FRUIT (REAL VIRTUAL E-KEY PICKUP ENGINE)
+-- SMOOTH TWEEN -> ENABLE TOUCH/PROXIMITY PROMPT -> FAST STORE -> HOP
 -- =================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -381,7 +381,7 @@ local function SmartHopServer()
     end)
 end
 
--- TWEEN TỚI TRÁI CỰC MƯỢT (NOCLIP 350 KM/H)
+-- TWEEN CHUẨN TỚI TRÁI
 local function SafeTweenToFruit(fruitData)
     local handle = fruitData.handle
     local targetFruit = fruitData.object
@@ -398,7 +398,7 @@ local function SafeTweenToFruit(fruitData)
         end
     end)
 
-    local speed = 350
+    local speed = 300
     while true do
         local currentChar, currentHrp = getCharacter()
         if not currentChar or not currentHrp then
@@ -420,7 +420,7 @@ local function SafeTweenToFruit(fruitData)
         local targetPos = handle.Position
         local dist = (targetPos - currentPos).Magnitude
 
-        if dist <= 2.5 then break end
+        if dist <= 1.5 then break end
 
         local dt = RunService.Heartbeat:Wait()
         local moveStep = math.min(dist, speed * dt)
@@ -436,60 +436,73 @@ local function SafeTweenToFruit(fruitData)
     return "SUCCESS"
 end
 
--- LỤM BẬC CẤT LUÔN SIÊU TỐC
+-- LỤM TRÁI ÉP PHÍM E VÀ CHẠM THỰC TẾ (REAL PICKUP)
 local function PickupAndStoreVerified(fruitData)
     local fruitObj = fruitData.object
     local handle = fruitData.handle
     local char, hrp, hum = getCharacter()
     if not char or not hrp or not handle then return end
 
-    DetailLabel.Text = "🍎 Picking Fruit..."
+    DetailLabel.Text = "⚡ Interacting & Picking Fruit..."
 
-    -- Đặt vị trí chính xác lên trái
-    hrp.CFrame = handle.CFrame
+    -- 1. Đặt nhân vật nằm đè ngay lên trái
+    hrp.CFrame = handle.CFrame * CFrame.new(0, 0.5, 0)
+    task.wait(0.05)
 
-    -- Ép va chạm lụm ngay lập tức
-    if firetouchinterest then
-        firetouchinterest(hrp, handle, 0)
-        task.wait(0.01)
-        firetouchinterest(hrp, handle, 1)
+    -- 2. Thử kích hoạt ProximityPrompt / Bấm phím E liên tục
+    local pickupStart = tick()
+    while (tick() - pickupStart) < 2.5 do
+        if not IsRealFruit(fruitObj) then break end
+
+        hrp.CFrame = handle.CFrame
+
+        -- Giả lập bấm phím E
+        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        task.wait(0.02)
+        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+
+        -- Kích hoạt ProximityPrompt nếu có
+        for _, desc in pairs(fruitObj:GetDescendants()) do
+            if desc:IsA("ProximityPrompt") then
+                if fireproximityprompt then
+                    fireproximityprompt(desc)
+                end
+            end
+        end
+
+        -- Touch Interest
+        if firetouchinterest then
+            firetouchinterest(hrp, handle, 0)
+            task.wait(0.01)
+            firetouchinterest(hrp, handle, 1)
+        end
+
+        -- Remote Pick
+        pcall(function()
+            local commF = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
+            if commF then commF:InvokeServer("PickFruit", fruitObj) end
+        end)
+
+        if GetFruitInInventory() then break end
+        task.wait(0.1)
     end
-
-    pcall(function()
-        local commF = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
-        if commF then commF:InvokeServer("PickFruit", fruitObj) end
-    end)
-
-    local prompt = fruitObj:FindFirstChildOfClass("ProximityPrompt") or handle:FindFirstChildOfClass("ProximityPrompt")
-    if prompt and fireproximityprompt then fireproximityprompt(prompt) end
-
-    task.wait(0.15)
 
     local tool = GetFruitInInventory()
     if not tool then
-        -- Thử lại lần cuối siêu tốc
-        pcall(function()
-            if commF then commF:InvokeServer("PickFruit", fruitObj) end
-        end)
-        task.wait(0.15)
-        tool = GetFruitInInventory()
-    end
-
-    if not tool then
         blacklistedFruits[fruitObj] = true
-        FruitLabel.Text = "⚠️ Fruit Gone / Unpickable!"
+        FruitLabel.Text = "⚠️ Fruit Stolen / Gone!"
         SmartHopServer()
         return
     end
 
-    -- Cầm trái lên tay ngay lập tức
+    -- Cầm trái lên tay
     DetailLabel.Text = "🖐️ Equipping Fruit..."
     if char and tool.Parent ~= char then
         if hum then hum:EquipTool(tool) else tool.Parent = char end
     end
-    task.wait(0.15)
+    task.wait(0.2)
 
-    -- Cất vào rương siêu tốc
+    -- Cất trái rương
     FruitLabel.Text = "🔒 Storing Fruit..."
     local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
 
@@ -504,13 +517,13 @@ local function PickupAndStoreVerified(fruitData)
         if currentTool and remote then
             remote:InvokeServer("StoreFruit", currentTool.Name, currentTool)
         end
-        task.wait(0.15)
+        task.wait(0.2)
     end
 
     if not GetFruitInInventory() then
         FruitLabel.Text = "✅ Store Success!"
         DetailLabel.Text = "🎉 Stored into inventory!"
-        task.wait(0.2)
+        task.wait(0.3)
     else
         FruitLabel.Text = "⚠️ Store Failed (Full Inventory)!"
         blacklistedFruits[fruitObj] = true
