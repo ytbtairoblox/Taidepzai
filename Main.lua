@@ -1,6 +1,6 @@
 -- =================================================================
--- SCRIPT: TAI HUB FIND FRUIT (ULTIMATE EDITION)
--- FIX AUTO PICKUP - ADVANCED API SERVER FILTER - ANTI EXPLOITER SERVER
+-- SCRIPT: TAI HUB FIND FRUIT (FINAL FIXED ENGINE)
+-- FIX BUG DISTANCE - INSTANT TOUCH PICKUP - SMART HOP (1-5 PLAYERS)
 -- =================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -45,7 +45,7 @@ pcall(function()
     if commF then commF:InvokeServer("SetTeam", "Marines") end
 end)
 
--- UI SYSTEM WITH SERVER API DISPLAY
+-- UI SYSTEM
 if CoreGui:FindFirstChild("TaiHubFindFruit") then
     CoreGui.TaiHubFindFruit:Destroy()
 end
@@ -55,8 +55,8 @@ ScreenGui.Name = "TaiHubFindFruit"
 ScreenGui.Parent = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 340, 0, 260)
-MainFrame.Position = UDim2.new(0.5, -170, 0.25, -130)
+MainFrame.Size = UDim2.new(0, 330, 0, 250)
+MainFrame.Position = UDim2.new(0.5, -165, 0.25, -125)
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
 MainFrame.Active = true
 MainFrame.ClipsDescendants = true
@@ -78,7 +78,7 @@ local TitleText = Instance.new("TextLabel", Header)
 TitleText.Size = UDim2.new(1, -10, 1, 0)
 TitleText.Position = UDim2.new(0, 10, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "✨ TAI HUB FIND FRUIT (API PRO) ✨"
+TitleText.Text = "✨ TAI HUB FIND FRUIT (FINAL PRO) ✨"
 TitleText.TextColor3 = Color3.fromRGB(245, 208, 75)
 TitleText.TextSize = 12
 TitleText.Font = Enum.Font.FredokaOne
@@ -86,7 +86,7 @@ TitleText.TextXAlignment = Enum.TextXAlignment.Left
 
 -- Container
 local Container = Instance.new("Frame", MainFrame)
-Container.Size = UDim2.new(1, -20, 0, 170)
+Container.Size = UDim2.new(1, -20, 0, 160)
 Container.Position = UDim2.new(0, 10, 0, 38)
 Container.BackgroundTransparency = 1
 
@@ -105,10 +105,10 @@ end
 
 local TimeLabel = CreateLabel(0, "⏳ Elapsed: 00:00:00 | 📶 Ping: 0 ms")
 local ServerLabel = CreateLabel(18, "🌐 Server Checked: 1", Color3.fromRGB(56, 189, 248))
-local ApiLabel = CreateLabel(36, "📡 API Server ID: " .. string.sub(game.JobId, 1, 12) .. "...", Color3.fromRGB(192, 132, 252))
-local PlayersOnlineLabel = CreateLabel(54, "👥 Server Players: " .. #Players:GetPlayers() .. " (Target: 1-5)", Color3.fromRGB(74, 222, 128))
+local ApiLabel = CreateLabel(36, "📡 Server JobID: " .. string.sub(game.JobId, 1, 12) .. "...", Color3.fromRGB(192, 132, 252))
+local PlayersOnlineLabel = CreateLabel(54, "👥 Players Online: " .. #Players:GetPlayers() .. " (Target: 1-5)", Color3.fromRGB(74, 222, 128))
 local FruitLabel = CreateLabel(72, "🔍 Status: Initializing Engine...", Color3.fromRGB(250, 204, 21))
-local DetailLabel = CreateLabel(90, "💡 Action: Scanning Fruits...", Color3.fromRGB(148, 163, 184))
+local DetailLabel = CreateLabel(90, "💡 Action: Scanning Map...", Color3.fromRGB(148, 163, 184))
 local TargetLabel = CreateLabel(108, "🍎 Target: None", Color3.fromRGB(168, 85, 247))
 local StoreAttemptLabel = CreateLabel(126, "📦 Store Attempts: 0", Color3.fromRGB(52, 211, 153))
 
@@ -117,7 +117,7 @@ local ToggleBtn = Instance.new("TextButton", MainFrame)
 ToggleBtn.Size = UDim2.new(1, -20, 0, 32)
 ToggleBtn.Position = UDim2.new(0, 10, 1, -38)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
-ToggleBtn.Text = "⚡ TAI HUB ENGINE: ACTIVE ⚡"
+ToggleBtn.Text = "⚡ TAI HUB FIND FRUIT: ACTIVE ⚡"
 ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleBtn.TextSize = 11
 ToggleBtn.Font = Enum.Font.FredokaOne
@@ -163,17 +163,16 @@ getgenv().TaiHubData.BlacklistedServers[game.JobId] = true
 _G.TaiHubActive = true
 local isProcessing = false
 local isHopping = false
-local FruitCache = {}
 local blacklistedFruits = {}
 local currentPing = 0
 
 ToggleBtn.MouseButton1Click:Connect(function()
     _G.TaiHubActive = not _G.TaiHubActive
     if _G.TaiHubActive then
-        ToggleBtn.Text = "⚡ TAI HUB ENGINE: ACTIVE ⚡"
+        ToggleBtn.Text = "⚡ TAI HUB FIND FRUIT: ACTIVE ⚡"
         ToggleBtn.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
     else
-        ToggleBtn.Text = "⛔ TAI HUB ENGINE: PAUSED ⛔"
+        ToggleBtn.Text = "⛔ TAI HUB FIND FRUIT: PAUSED ⛔"
         ToggleBtn.BackgroundColor3 = Color3.fromRGB(239, 68, 68)
         FruitLabel.Text = "⏸️ Status: Paused"
         DetailLabel.Text = "💡 Action: Engine Halted"
@@ -195,9 +194,9 @@ task.spawn(function()
 
             TimeLabel.Text = string.format("⏳ Elapsed: %02d:%02d:%02d | 📶 Ping: %d ms", math.floor(elapsed/3600), math.floor((elapsed%3600)/60), elapsed%60, currentPing)
             ServerLabel.Text = "🌐 Server Checked: " .. getgenv().TaiHubData.ServerCount
-            PlayersOnlineLabel.Text = "👥 Server Players: " .. #Players:GetPlayers() .. " (Target: 1-5)"
+            PlayersOnlineLabel.Text = "👥 Players Online: " .. #Players:GetPlayers() .. " (Target: 1-5)"
 
-            -- Clear Error Prompts
+            -- Clear Roblox Error Prompts
             pcall(function()
                 local promptGui = CoreGui:FindFirstChild("RobloxPromptGui")
                 if promptGui then
@@ -218,52 +217,141 @@ task.spawn(function()
     end
 end)
 
--- FRUIT REGISTRATION SYSTEM
-local function RegisterFruit(obj)
-    if (obj:IsA("Tool") or obj:IsA("Model")) and string.find(obj.Name, "Fruit") and (obj:FindFirstChild("Handle") or obj:FindFirstChildOfClass("Part")) then
-        if not blacklistedFruits[obj] and not table.find(FruitCache, obj) then
-            table.insert(FruitCache, obj)
-        end
-    end
-end
-
-for _, child in pairs(Workspace:GetChildren()) do RegisterFruit(child) end
-Workspace.ChildAdded:Connect(function(child) task.wait(0.1); RegisterFruit(child) end)
-Workspace.ChildRemoved:Connect(function(child)
-    local idx = table.find(FruitCache, child)
-    if idx then table.remove(FruitCache, idx) end
-end)
-
-local function GetSortedFruits()
+-- HÀM LỌC FRUIT THỰC TẾ TRÊN MAP (LOẠI BỎ FRUIT ẢO)
+local function GetValidFruitsOnMap()
     local validFruits = {}
-    for i = #FruitCache, 1, -1 do
-        local obj = FruitCache[i]
-        local handle = obj and (obj:FindFirstChild("Handle") or obj:FindFirstChildOfClass("Part"))
-        if obj and obj.Parent and handle and not blacklistedFruits[obj] then
-            table.insert(validFruits, obj)
-        else
-            table.remove(FruitCache, i)
+    local _, hrp = getCharacter()
+    if not hrp then return validFruits end
+
+    for _, obj in pairs(Workspace:GetChildren()) do
+        if (obj:IsA("Tool") or obj:IsA("Model")) and string.find(obj.Name, "Fruit") and not blacklistedFruits[obj] then
+            local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildOfClass("BasePart")
+            if handle then
+                local dist = (handle.Position - hrp.Position).Magnitude
+                -- Loại bỏ các Object quả nằm ngoài khoảng cách bản đồ thực tế (> 100,000m)
+                if dist < 50000 then
+                    table.insert(validFruits, { object = obj, handle = handle, distance = dist })
+                end
+            end
         end
     end
 
-    local _, hrp = getCharacter()
-    if hrp then
-        table.sort(validFruits, function(a, b)
-            local hA = a:FindFirstChild("Handle") or a:FindFirstChildOfClass("Part")
-            local hB = b:FindFirstChild("Handle") or b:FindFirstChildOfClass("Part")
-            return (hA.Position - hrp.Position).Magnitude < (hB.Position - hrp.Position).Magnitude
-        end)
-    end
+    table.sort(validFruits, function(a, b)
+        return a.distance < b.distance
+    end)
+
     return validFruits
 end
 
--- TWEEN TO FRUIT ENGINE
-local function SafeLerpTween(targetFruit)
-    local handle = targetFruit and (targetFruit:FindFirstChild("Handle") or targetFruit:FindFirstChildOfClass("Part"))
-    if not handle then return "STOLEN" end
-    local char, hrp, hum = getCharacter()
-    if not char then return "ERROR" end
+-- LỤM TRÁI TRỰC TIẾP
+local function GetFruitInInventory()
+    local char = getCharacter()
+    for _, container in pairs({LocalPlayer.Backpack, char}) do
+        if container then
+            for _, item in pairs(container:GetChildren()) do
+                if item:IsA("Tool") and string.find(item.Name, "Fruit") then
+                    return item
+                end
+            end
+        end
+    end
+    return nil
+end
 
+local function ForceInstantPickup(fruitData)
+    local obj = fruitData.object
+    local handle = fruitData.handle
+    local char, hrp = getCharacter()
+    if not char or not hrp or not handle then return end
+
+    DetailLabel.Text = "🤏 Action: Instant Pickup & Touch..."
+
+    -- 1. Dịch chuyển nhân vật đè sát lên tâm quả
+    hrp.CFrame = handle.CFrame * CFrame.new(0, 0.2, 0)
+    hrp.Velocity = Vector3.zero
+
+    -- 2. Kích hoạt Touch Interest liên tục
+    if firetouchinterest then
+        firetouchinterest(hrp, handle, 0)
+        task.wait(0.02)
+        firetouchinterest(hrp, handle, 1)
+    end
+
+    -- 3. Kích hoạt ProximityPrompt nếu có
+    local prompt = obj:FindFirstChildOfClass("ProximityPrompt") or handle:FindFirstChildOfClass("ProximityPrompt")
+    if prompt and fireproximityprompt then
+        fireproximityprompt(prompt)
+    end
+end
+
+local function PickupAndStoreVerified(fruitData)
+    local fruitObj = fruitData.object
+    local pickupTimer = tick()
+
+    while (tick() - pickupTimer) < 3 do
+        if not fruitObj or not fruitObj.Parent then break end
+        ForceInstantPickup(fruitData)
+        
+        local toolInInv = GetFruitInInventory()
+        if toolInInv then break end
+        task.wait(0.1)
+    end
+
+    local tool = GetFruitInInventory()
+    if not tool then
+        blacklistedFruits[fruitObj] = true
+        return
+    end
+
+    -- Equip lên tay
+    DetailLabel.Text = "🖐️ Action: Equipping Fruit..."
+    local char = getCharacter()
+    if char and tool.Parent ~= char then 
+        tool.Parent = char 
+    end
+    task.wait(0.2)
+
+    -- Cất vào Store
+    FruitLabel.Text = "🔒 Status: Storing Fruit..."
+    local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
+
+    local storeAttempts = 0
+    local storeStart = tick()
+    
+    while tool and tool.Parent and (tick() - storeStart) < 8 do
+        storeAttempts = storeAttempts + 1
+        StoreAttemptLabel.Text = "📦 Store Attempts: " .. storeAttempts
+        DetailLabel.Text = "🔄 Storing " .. tool.Name .. "..."
+
+        if remote then
+            remote:InvokeServer("StoreFruit", tool.Name, tool)
+        end
+        task.wait(0.2)
+
+        if not GetFruitInInventory() then
+            FruitLabel.Text = "✅ Store Verified: Success!"
+            DetailLabel.Text = "🎉 Stored to inventory!"
+            task.wait(0.3)
+            return
+        end
+    end
+
+    if GetFruitInInventory() then
+        FruitLabel.Text = "⚠️ Store Failed: Inventory Full!"
+        blacklistedFruits[fruitObj] = true
+    end
+end
+
+-- TWEEN BAY ĐẾN TRÁI CÂY
+local function SafeFlyToFruit(fruitData)
+    local handle = fruitData.handle
+    local targetFruit = fruitData.object
+    if not handle or not targetFruit or not targetFruit.Parent then return "STOLEN" end
+
+    local char, hrp = getCharacter()
+    if not char or not hrp then return "ERROR" end
+
+    -- Bật Noclip
     local noclipConn = RunService.Stepped:Connect(function()
         local c = getCharacter()
         if c then
@@ -287,7 +375,7 @@ local function SafeLerpTween(targetFruit)
             return "CANCEL"
         end
 
-        if not targetFruit or not targetFruit.Parent or not (targetFruit:FindFirstChild("Handle") or targetFruit:FindFirstChildOfClass("Part")) then
+        if not targetFruit or not targetFruit.Parent or not handle then
             if noclipConn then noclipConn:Disconnect() end
             return "STOLEN"
         end
@@ -296,7 +384,8 @@ local function SafeLerpTween(targetFruit)
         local targetPos = handle.Position
         local dist = (targetPos - currentPos).Magnitude
 
-        if dist <= 3 then break end
+        -- Nếu đã ở gần dưới 4m thì dừng Tween để chuyển sang Lụm
+        if dist <= 4 then break end
 
         local dt = RunService.Heartbeat:Wait()
         local moveStep = math.min(dist, speed * dt)
@@ -305,126 +394,14 @@ local function SafeLerpTween(targetFruit)
         currentHrp.CFrame = CFrame.new(currentPos:Lerp(targetPos, alpha), targetPos)
         currentHrp.Velocity = Vector3.zero
 
-        DetailLabel.Text = string.format("🚀 Tweening... Distance: %dm", math.floor(dist / 3.57))
-    end
-
-    local finalChar, finalHrp = getCharacter()
-    if finalHrp and handle then
-        finalHrp.CFrame = handle.CFrame * CFrame.new(0, 0.5, 0)
+        DetailLabel.Text = string.format("🚀 Flying... Distance: %dm", math.floor(dist / 3.57))
     end
 
     if noclipConn then noclipConn:Disconnect() end
     return "SUCCESS"
 end
 
--- ULTRA PICKUP & STORE ENGINE (SỬA LỖI ĐỨNG NHÌN)
-local function GetFruitInInventory()
-    local char = getCharacter()
-    for _, container in pairs({LocalPlayer.Backpack, char}) do
-        if container then
-            for _, item in pairs(container:GetChildren()) do
-                if item:IsA("Tool") and string.find(item.Name, "Fruit") then
-                    return item
-                end
-            end
-        end
-    end
-    return nil
-end
-
-local function DirectForcePickup(fruitObj)
-    if not fruitObj then return end
-    local char, hrp = getCharacter()
-    if not hrp then return end
-    local handle = fruitObj:FindFirstChild("Handle") or fruitObj:FindFirstChildOfClass("Part")
-    if not handle then return end
-
-    DetailLabel.Text = "🤏 Action: Direct Force Pickup..."
-
-    -- 1. Teleport đè trực tiếp lên Part
-    hrp.CFrame = handle.CFrame
-
-    -- 2. Touch Interest
-    if firetouchinterest then
-        firetouchinterest(hrp, handle, 0)
-        task.wait(0.05)
-        firetouchinterest(hrp, handle, 1)
-    end
-
-    -- 3. ProximityPrompt
-    local prompt = fruitObj:FindFirstChildOfClass("ProximityPrompt") or handle:FindFirstChildOfClass("ProximityPrompt")
-    if prompt and fireproximityprompt then
-        fireproximityprompt(prompt)
-    end
-
-    -- 4. Invoke Server pickup nếu có
-    pcall(function()
-        local commF = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
-        if commF then
-            commF:InvokeServer("PickFruit", fruitObj)
-        end
-    end)
-end
-
-local function PickupAndStoreVerified(fruitObj)
-    DirectForcePickup(fruitObj)
-
-    FruitLabel.Text = "📦 Status: Verifying Pickup..."
-    local tool = nil
-    local checkTime = tick()
-
-    while (tick() - checkTime) < 2.5 do
-        tool = GetFruitInInventory()
-        if tool then break end
-        DirectForcePickup(fruitObj)
-        task.wait(0.1)
-    end
-
-    if not tool then
-        blacklistedFruits[fruitObj] = true
-        return
-    end
-
-    -- Trang bị trái lên tay
-    DetailLabel.Text = "🖐️ Action: Equipping Fruit..."
-    local char = getCharacter()
-    if char and tool.Parent ~= char then 
-        tool.Parent = char 
-    end
-    task.wait(0.2)
-
-    -- Cất trái vào rương
-    FruitLabel.Text = "🔒 Status: Storing Fruit..."
-    local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
-
-    local storeAttempts = 0
-    local storeStart = tick()
-    
-    while tool and tool.Parent and (tick() - storeStart) < 8 do
-        storeAttempts = storeAttempts + 1
-        StoreAttemptLabel.Text = "📦 Store Attempts: " .. storeAttempts
-        DetailLabel.Text = "🔄 Storing " .. tool.Name .. "..."
-
-        if remote then
-            remote:InvokeServer("StoreFruit", tool.Name, tool)
-        end
-        task.wait(0.2)
-
-        if not GetFruitInInventory() then
-            FruitLabel.Text = "✅ Store Verified: Success!"
-            DetailLabel.Text = "🎉 Fruit stored successfully!"
-            task.wait(0.3)
-            return
-        end
-    end
-
-    if GetFruitInInventory() then
-        FruitLabel.Text = "⚠️ Store Failed: Inventory Full!"
-        blacklistedFruits[fruitObj] = true
-    end
-end
-
--- ADVANCED SMART HOP ENGINE (CHỈ SERVER 1-5 NGƯỜI, KHÔNG SERVER LÂU NĂM/HACK)
+-- SMART HOP SERVER (1 - 5 NGƯỜI, CHỐNG LẶP SERVER)
 local function SmartHopServer()
     if not _G.TaiHubActive or isHopping then return end
     isHopping = true
@@ -440,10 +417,9 @@ local function SmartHopServer()
         local validCandidateServers = {}
 
         pcall(function()
-            -- Nhảy ngẫu nhiên trang để chống bị lặp server cũ
-            local randomStartPage = math.random(1, 5)
+            local randomStartPage = math.random(1, 4)
             
-            for page = 1, 12 do
+            for page = 1, 10 do
                 if not _G.TaiHubActive then break end
                 local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100" .. (cursor ~= "" and ("&cursor=" .. cursor) or "")
                 local rawData = game:HttpGet(url)
@@ -457,10 +433,6 @@ local function SmartHopServer()
                             for _, server in pairs(decoded.data) do
                                 local playing = server.playing or 0
                                 
-                                -- ĐIỀU KIỆN LỌC SERVER NGHIÊM NGẶT:
-                                -- 1. Không trùng server hiện tại & Chưa vào bao giờ
-                                -- 2. Số người chơi ĐÚNG TỪ 1 ĐẾN 5 NGƯỜI
-                                -- 3. Ping ổn định (Tránh server giật/lag cày nát)
                                 if server.id ~= game.JobId 
                                    and not getgenv().TaiHubData.BlacklistedServers[server.id] 
                                    and playing >= 1 and playing <= 5 then
@@ -472,7 +444,7 @@ local function SmartHopServer()
                     end
                 end
                 
-                if #validCandidateServers >= 4 then break end
+                if #validCandidateServers >= 3 then break end
                 task.wait(0.05)
             end
         end)
@@ -486,7 +458,7 @@ local function SmartHopServer()
 
         if targetServerId and _G.TaiHubActive then
             FruitLabel.Text = "✈️ Status: Teleporting..."
-            DetailLabel.Text = "🌐 Target API Server: [" .. targetPlayerCount .. " Players]"
+            DetailLabel.Text = "🌐 Target Server: [" .. targetPlayerCount .. " Players]"
             ApiLabel.Text = "📡 Next Server: " .. string.sub(targetServerId, 1, 12) .. "..."
             task.wait(0.3)
             TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServerId, LocalPlayer)
@@ -508,35 +480,37 @@ local function SmartHopServer()
     end)
 end
 
--- MAIN AUTOMATION LOOP
+-- MAIN ENGINE LOOP
 task.spawn(function()
     while task.wait(0.2) do
         if _G.TaiHubActive and not isProcessing and not isHopping then
             local char, hrp = getCharacter()
             if char and hrp then
-                local sortedFruits = GetSortedFruits()
+                local validFruits = GetValidFruitsOnMap()
 
-                if #sortedFruits > 0 then
+                if #validFruits > 0 then
                     isProcessing = true
-                    local target = sortedFruits[1]
+                    local targetData = validFruits[1]
 
                     FruitLabel.Text = "🔥 Status: Target Locked!"
-                    TargetLabel.Text = "🍎 Target: " .. target.Name
+                    TargetLabel.Text = "🍎 Target: " .. targetData.object.Name
 
                     task.wait(0.05)
-                    local handle = target and (target:FindFirstChild("Handle") or target:FindFirstChildOfClass("Part"))
-                    if not target or not target.Parent or not handle then
+                    
+                    -- Nếu đã đứng sát cạnh trái (< 10m) thì bỏ qua Tween, Lụm luôn!
+                    if targetData.distance <= 10 then
+                        PickupAndStoreVerified(targetData)
+                        task.wait(0.2)
                         isProcessing = false
                     else
-                        local result = SafeLerpTween(target)
-
-                        if result == "SUCCESS" then
-                            PickupAndStoreVerified(target)
+                        local flyResult = SafeFlyToFruit(targetData)
+                        if flyResult == "SUCCESS" then
+                            PickupAndStoreVerified(targetData)
                             task.wait(0.2)
                             isProcessing = false
-                        elseif result == "STOLEN" then
+                        elseif flyResult == "STOLEN" then
                             FruitLabel.Text = "⚠️ Target Disappeared!"
-                            DetailLabel.Text = "🔄 Hop Server..."
+                            DetailLabel.Text = "🔄 Hopping Server..."
                             task.wait(0.2)
                             SmartHopServer()
                         else
@@ -546,7 +520,7 @@ task.spawn(function()
                 else
                     FruitLabel.Text = "🌐 Status: Map Clean!"
                     TargetLabel.Text = "🍎 Target: None"
-                    DetailLabel.Text = "✈️ No fruit in map. Hopping..."
+                    DetailLabel.Text = "✈️ No fruit found. Hopping..."
                     SmartHopServer()
                 end
             end
