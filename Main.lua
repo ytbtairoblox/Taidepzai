@@ -1,6 +1,6 @@
 -- =================================================================
--- SCRIPT: TAI HUB FIND FRUIT (FINAL ULTRA PERFECT FIX)
--- FIX GHOST FRUIT / WATER TELEPORT / HARDENED ESP / INSTANT HOP
+-- SCRIPT: TAI HUB FIND FRUIT (FULL FIX: ALWAYS TWEEN TO ANY FRUIT)
+-- AUTO TWEEN -> NOCLIP -> HARD UNANCHOR PICKUP -> STORE -> SMART HOP
 -- =================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -26,20 +26,21 @@ if queue_on_teleport and getgenv().TaiHubScriptSource then
     ]])
 end
 
--- GET CHARACTER
+-- GET CHARACTER & RESET SIT STATE
 local function getCharacter()
     local char = LocalPlayer.Character
     if char then
         local hrp = char:FindFirstChild("HumanoidRootPart")
         local hum = char:FindFirstChildOfClass("Humanoid")
         if hrp and hum and hum.Health > 0 then
+            if hum.Sit then hum.Sit = false end
             return char, hrp, hum
         end
     end
     return nil, nil, nil
 end
 
--- AUTO SET TEAM
+-- AUTO SET TEAM MARINES
 pcall(function()
     local commF = ReplicatedStorage:WaitForChild("Remotes", 3) and ReplicatedStorage.Remotes:WaitForChild("CommF_", 3)
     if commF then commF:InvokeServer("SetTeam", "Marines") end
@@ -180,7 +181,7 @@ ToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- HÀM KIỂM TRA TRÁI THỰC TẾ (LOẠI BỎ TẬN GỐC TRÁI ẢO DƯỚI NƯỚC)
+-- BỘ LỌC CHUẨN: CHỈ CẦN LÀ TRÁI CÂY TRÊN MAP LÀ TWEEN NGAY (KHÔNG BỎ SÓT)
 local function IsRealFruit(obj)
     if not obj or not obj.Parent then return false end
     if not (obj:IsA("Tool") or obj:IsA("Model")) then return false end
@@ -190,14 +191,10 @@ local function IsRealFruit(obj)
     local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildOfClass("BasePart")
     if not handle then return false end
 
-    -- Trái ảo thường bị giấu dưới mực nước sâu (< -100) hoặc có Transparency = 1
-    if handle.Position.Y < -50 then return false end
-    if handle.Transparency >= 0.9 then return false end
-
     return true, handle
 end
 
--- HỆ THỐNG ESP TRÁI CÂY CHUẨN CŨ (XUYÊN TƯỜNG + HIỆN TÊN TRỰC TIẾP LÊN OBJECT)
+-- ESP HIỆN TÊN VÀ KHỎANG CÁCH TRỰC TIẾP LÊN TRÁI CÂY
 local function UpdateFruitESP()
     for _, obj in pairs(Workspace:GetChildren()) do
         local isReal, handle = IsRealFruit(obj)
@@ -238,7 +235,7 @@ local function UpdateFruitESP()
     end
 end
 
--- BACKGROUND LOOP
+-- BACKGROUND SYSTEM LOOP
 task.spawn(function()
     while task.wait(0.3) do
         if _G.TaiHubActive then
@@ -256,7 +253,7 @@ task.spawn(function()
 
             pcall(UpdateFruitESP)
 
-            -- Auto Clear Error Prompt
+            -- Clear Error Prompt
             pcall(function()
                 local promptGui = CoreGui:FindFirstChild("RobloxPromptGui")
                 if promptGui then
@@ -277,7 +274,7 @@ task.spawn(function()
     end
 end)
 
--- TÌM DẠNG TRÁI HỢP LỆ
+-- GET VALID FRUITS ON MAP
 local function GetValidFruitsOnMap()
     local validFruits = {}
     local _, hrp = getCharacter()
@@ -295,7 +292,7 @@ local function GetValidFruitsOnMap()
     return validFruits
 end
 
--- KIỂM TRA TRÁI TRONG TÚI
+-- GET FRUIT IN INVENTORY
 local function GetFruitInInventory()
     local char = getCharacter()
     for _, container in pairs({LocalPlayer.Backpack, char}) do
@@ -310,7 +307,7 @@ local function GetFruitInInventory()
     return nil
 end
 
--- SMART HOP SERVER
+-- SMART HOP SERVER (1 - 5 PLAYERS)
 local function SmartHopServer()
     if not _G.TaiHubActive or isHopping then return end
     isHopping = true
@@ -384,7 +381,7 @@ local function SmartHopServer()
     end)
 end
 
--- TWEEN VÀO GIỮA TRÁI
+-- TWEEN TỚI TRÁI VÀ NOCLIP XUYÊN ĐỊA HÌNH
 local function SafeTweenToFruit(fruitData)
     local handle = fruitData.handle
     local targetFruit = fruitData.object
@@ -416,7 +413,6 @@ local function SafeTweenToFruit(fruitData)
             return "CANCEL"
         end
 
-        -- Nếu trái bị mất hoặc quá 12s không tới được -> Bị cướp/lỗi
         if not IsRealFruit(targetFruit) or (tick() - tweenStart > 12) then
             if noclipConn then noclipConn:Disconnect() end
             return "STOLEN"
@@ -426,7 +422,7 @@ local function SafeTweenToFruit(fruitData)
         local targetPos = handle.Position
         local dist = (targetPos - currentPos).Magnitude
 
-        if dist <= 3 then break end
+        if dist <= 2.5 then break end
 
         local dt = RunService.Heartbeat:Wait()
         local moveStep = math.min(dist, speed * dt)
@@ -442,33 +438,39 @@ local function SafeTweenToFruit(fruitData)
     return "SUCCESS"
 end
 
--- THỰC HIỆN LỤM VÀ CẤT
+-- LỤM & CẤT VÀO RƯƠNG (ÉP UNANCHOR + TOUCH INTEREST)
 local function PickupAndStoreVerified(fruitData)
     local fruitObj = fruitData.object
     local handle = fruitData.handle
     local char, hrp, hum = getCharacter()
     if not char or not hrp or not handle then return end
 
+    DetailLabel.Text = "💥 Unanchoring & Picking Fruit..."
+
     local pickupTimer = tick()
-    while (tick() - pickupTimer) < 2.5 do
+    while (tick() - pickupTimer) < 3 do
         if not IsRealFruit(fruitObj) then
-            FruitLabel.Text = "⚠️ Target Disappeared!"
-            DetailLabel.Text = "🔄 Hopping Server..."
+            FruitLabel.Text = "⚠️ Target Stolen/Gone!"
+            DetailLabel.Text = "🔄 Auto Hopping..."
             SmartHopServer()
             return
         end
 
-        hrp.CFrame = handle.CFrame
-        handle.CanCollide = false
+        pcall(function()
+            handle.Anchored = false
+            handle.CanCollide = false
+        end)
+
+        hrp.CFrame = handle.CFrame * CFrame.new(0, -0.2, 0)
 
         if firetouchinterest then
             firetouchinterest(hrp, handle, 0)
-            task.wait(0.02)
+            task.wait(0.01)
             firetouchinterest(hrp, handle, 1)
         end
 
         pcall(function()
-            local commF = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_", 2)
+            local commF = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
             if commF then commF:InvokeServer("PickFruit", fruitObj) end
         end)
 
@@ -481,22 +483,18 @@ local function PickupAndStoreVerified(fruitData)
 
     local tool = GetFruitInInventory()
     if not tool then
-        -- Đến nơi mà không lụm được (trái ảo) -> Cho vào Blacklist và Hop Server ngay!
         blacklistedFruits[fruitObj] = true
-        FruitLabel.Text = "⚠️ Pickup Failed (Ghost Fruit)!"
-        DetailLabel.Text = "🔄 Auto Hopping Server..."
+        FruitLabel.Text = "⚠️ Fruit Unpickable! Hopping..."
         SmartHopServer()
         return
     end
 
-    -- Equip trái lên tay
     DetailLabel.Text = "🖐️ Equipping Fruit..."
     if char and tool.Parent ~= char then
         if hum then hum:EquipTool(tool) else tool.Parent = char end
     end
-    task.wait(0.2)
+    task.wait(0.25)
 
-    -- Cất trái vào rương
     FruitLabel.Text = "🔒 Storing Fruit..."
     local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
 
@@ -523,7 +521,6 @@ local function PickupAndStoreVerified(fruitData)
         blacklistedFruits[fruitObj] = true
     end
 
-    -- Hoàn tất đổi server tiếp
     SmartHopServer()
 end
 
