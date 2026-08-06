@@ -1,6 +1,6 @@
 -- =================================================================
 -- SCRIPT: TAI HUB FIND FRUIT (PERFECT EDITION)
--- EVENT CACHE - LERP TWEEN - LOCK STORE VERIFY - PING HOP RETRY
+-- DIRECT TWEEN - ERROR PROMPT AUTO FIX - SAFE SERVER HOP
 -- =================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -13,10 +13,11 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 local Stats = game:GetService("Stats")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
 
--- QUẢN LÝ CONNECTIONS & GC (CHỐNG RÒ RỈ MEMORY)
+-- QUẢN LÝ CONNECTIONS & GC
 local GC_Connections = {}
 local function AddConnection(conn)
     table.insert(GC_Connections, conn)
@@ -194,9 +195,9 @@ ToggleBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- Background Task Loop (Sync UI, Ping, Prompt Handler)
+-- Background Task Loop (Auto Dismiss Error Prompt Mã Lỗi 2)
 AddConnection(task.spawn(function()
-    while task.wait(0.4) do
+    while task.wait(0.3) do
         if _G.TaiHubActive then
             getgenv().TaiHubData.LastActive = os.time()
             local elapsed = os.time() - getgenv().TaiHubData.StartTime
@@ -208,18 +209,25 @@ AddConnection(task.spawn(function()
             TimeLabel.Text = string.format("⏳ Elapsed: %02d:%02d:%02d | 📶 Ping: %d ms", math.floor(elapsed/3600), math.floor((elapsed%3600)/60), elapsed%60, currentPing)
             ServerLabel.Text = "🌐 Server Checked: " .. getgenv().TaiHubData.ServerCount
 
+            -- SỬA LỖI MÃ LỖI 2 (POPUPS KẾT NỐI THẤT BẠI)
             pcall(function()
                 local promptGui = CoreGui:FindFirstChild("RobloxPromptGui")
                 if promptGui then
-                    local errorPrompt = promptGui:FindFirstChild("promptOverlay") and promptGui.promptOverlay:FindFirstChild("ErrorPrompt")
-                    if errorPrompt and errorPrompt.Visible then
-                        GuiService:ClearSelectedObject()
-                        local okBtn = errorPrompt:FindFirstChild("ButtonArea") and errorPrompt.ButtonArea:FindFirstChildOfClass("TextButton")
-                        if okBtn then
-                            GuiService.SelectedObject = okBtn
-                            task.wait(0.05)
-                            game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.Return, false, game)
-                            game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+                    local promptOverlay = promptGui:FindFirstChild("promptOverlay")
+                    if promptOverlay then
+                        local errorPrompt = promptOverlay:FindFirstChild("ErrorPrompt")
+                        if errorPrompt and errorPrompt.Visible then
+                            GuiService:ClearSelectedObject()
+                            local buttonArea = errorPrompt:FindFirstChild("ButtonArea")
+                            if buttonArea then
+                                local btn = buttonArea:FindFirstChildOfClass("TextButton")
+                                if btn then
+                                    GuiService.SelectedObject = btn
+                                    task.wait(0.05)
+                                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
+                                end
+                            end
                         end
                     end
                 end
@@ -249,7 +257,6 @@ AddConnection(Workspace.ChildRemoved:Connect(function(child)
     if idx then table.remove(FruitCache, idx) end
 end))
 
--- SORT TRÁI CÂY THEO KHOẢNG CÁCH VÀ CHIỀU CAO
 local function GetSortedFruits()
     local validFruits = {}
     for i = #FruitCache, 1, -1 do
@@ -265,21 +272,13 @@ local function GetSortedFruits()
     if hrp then
         local hrpPos = hrp.Position
         table.sort(validFruits, function(a, b)
-            local posA = a.Handle.Position
-            local posB = b.Handle.Position
-            local distA = (posA - hrpPos).Magnitude
-            local distB = (posB - hrpPos).Magnitude
-
-            if math.abs(distA - distB) > 5 then
-                return distA < distB
-            end
-            return posA.Y < posB.Y
+            return (a.Handle.Position - hrpPos).Magnitude < (b.Handle.Position - hrpPos).Magnitude
         end)
     end
     return validFruits
 end
 
--- 7. LERP TWEEN ENGINE AN TOÀN (CHỐNG KẸT KHI RESET CHARACTER)
+-- 7. DIRECT LERP TWEEN ENGINE (BAY THẲNG TRỰC TIẾP TỚI TRÁI CÂY)
 local function SafeLerpTween(targetFruit)
     if not targetFruit or not targetFruit:FindFirstChild("Handle") then return "STOLEN" end
     local char, hrp, hum = getCharacter()
@@ -296,48 +295,42 @@ local function SafeLerpTween(targetFruit)
     end))
 
     local targetPos = targetFruit.Handle.Position
-    local speed = 290
-    
-    local startPos = hrp.Position
-    local waypoints = {
-        Vector3.new(startPos.X, math.max(startPos.Y, targetPos.Y) + 130, startPos.Z),
-        Vector3.new(targetPos.X, math.max(startPos.Y, targetPos.Y) + 130, targetPos.Z),
-        targetPos
-    }
+    local speed = 300 -- Tốc độ di chuyển mượt mà
 
-    for _, point in ipairs(waypoints) do
-        while true do
-            local currentChar, currentHrp, currentHum = getCharacter()
-            if not currentChar or not currentHrp then
-                if noclipConn then noclipConn:Disconnect() end
-                return "RESET"
-            end
-
-            if (currentHrp.Position - point).Magnitude <= 6 then break end
-
-            if not _G.TaiHubActive then
-                if noclipConn then noclipConn:Disconnect() end
-                return "CANCEL"
-            end
-            if not targetFruit or not targetFruit.Parent or not targetFruit:FindFirstChild("Handle") then
-                if noclipConn then noclipConn:Disconnect() end
-                return "STOLEN"
-            end
-
-            local dt = RunService.Heartbeat:Wait()
-            local currentPos = currentHrp.Position
-            local dist = (point - currentPos).Magnitude
-            local moveStep = math.min(dist, speed * dt)
-            local alpha = moveStep / dist
-
-            local nextPos = currentPos:Lerp(point, alpha)
-            currentHrp.CFrame = CFrame.new(nextPos, point)
-            currentHrp.Velocity = Vector3.zero
-            if currentHum then currentHum:ChangeState(Enum.HumanoidStateType.Freefall) end
-
-            local currentDist = math.floor((targetFruit.Handle.Position - currentHrp.Position).Magnitude / 3.57)
-            DetailLabel.Text = string.format("🚀 Lerp Tweening... Distance: %dm", currentDist)
+    while true do
+        local currentChar, currentHrp, currentHum = getCharacter()
+        if not currentChar or not currentHrp then
+            if noclipConn then noclipConn:Disconnect() end
+            return "RESET"
         end
+
+        if not _G.TaiHubActive then
+            if noclipConn then noclipConn:Disconnect() end
+            return "CANCEL"
+        end
+
+        if not targetFruit or not targetFruit.Parent or not targetFruit:FindFirstChild("Handle") then
+            if noclipConn then noclipConn:Disconnect() end
+            return "STOLEN"
+        end
+
+        local currentPos = currentHrp.Position
+        local currentTargetPos = targetFruit.Handle.Position
+        local dist = (currentTargetPos - currentPos).Magnitude
+
+        if dist <= 5 then break end
+
+        local dt = RunService.Heartbeat:Wait()
+        local moveStep = math.min(dist, speed * dt)
+        local alpha = moveStep / dist
+
+        local nextPos = currentPos:Lerp(currentTargetPos, alpha)
+        currentHrp.CFrame = CFrame.new(nextPos, currentTargetPos)
+        currentHrp.Velocity = Vector3.zero
+        if currentHum then currentHum:ChangeState(Enum.HumanoidStateType.Freefall) end
+
+        local displayDist = math.floor(dist / 3.57)
+        DetailLabel.Text = string.format("🚀 Tweening... Distance: %dm", displayDist)
     end
 
     local finalChar, finalHrp = getCharacter()
@@ -496,7 +489,7 @@ local function PickupAndStoreVerified(fruitObj)
     end
 end
 
--- 10. SMART HOP SERVER ENGINE
+-- 10. SMART HOP SERVER ENGINE (CHỐNG MÃ LỖI 2 CỰC TỐT)
 local function SmartHopServer()
     if not _G.TaiHubActive or isHopping then return end
     isHopping = true
@@ -523,7 +516,8 @@ local function SmartHopServer()
                             local playing = server.playing or 0
                             local maxPlayers = server.maxPlayers or 12
                             
-                            if server.id ~= game.JobId and not getgenv().TaiHubData.BlacklistedServers[server.id] and playing >= 1 and playing <= 6 and playing < maxPlayers then
+                            -- Chọn server ổn định từ 2 đến 8 người chơi
+                            if server.id ~= game.JobId and not getgenv().TaiHubData.BlacklistedServers[server.id] and playing >= 2 and playing <= 8 and playing < maxPlayers then
                                 targetServerId = server.id
                                 targetPlayerCount = playing
                                 AddServerToBlacklist(server.id)
@@ -532,13 +526,14 @@ local function SmartHopServer()
                         end
                     end
                 end
-                task.wait(0.05)
+                task.wait(0.1)
             end
         end)
 
         if targetServerId and _G.TaiHubActive then
             FruitLabel.Text = "✈️ Status: Initiating Teleport..."
             DetailLabel.Text = "🌐 Target Server: [" .. targetPlayerCount .. " Players]"
+            task.wait(0.5)
             TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServerId, LocalPlayer)
             return true
         end
@@ -549,7 +544,7 @@ local function SmartHopServer()
     teleportConn = AddConnection(TeleportService.TeleportInitFailed:Connect(function(player, teleportResult, errorMessage)
         if player == LocalPlayer then
             DetailLabel.Text = "❌ Teleport Failed! Retrying hop..."
-            task.wait(0.5)
+            task.wait(1)
             AttemptHop()
         end
     end))
@@ -557,10 +552,11 @@ local function SmartHopServer()
     local success = AttemptHop()
     if not success and _G.TaiHubActive then
         DetailLabel.Text = "⚠️ Fallback random hopping..."
+        task.wait(0.5)
         TeleportService:Teleport(game.PlaceId, LocalPlayer)
     end
 
-    task.delay(8, function()
+    task.delay(10, function()
         if teleportConn then teleportConn:Disconnect() end
         isHopping = false
         isProcessing = false
@@ -604,7 +600,7 @@ AddConnection(task.spawn(function()
                 else
                     FruitLabel.Text = "🌐 Status: Map Clean!"
                     TargetLabel.Text = "🍎 Target: None"
-                    DetailLabel.Text = "✈️ No fruit in Map. Hopping..."
+                    DetailLabel.Text = "✈️ No fruit in cache. Hopping..."
                     SmartHopServer()
                 end
             end
