@@ -1,6 +1,6 @@
 -- =================================================================
--- SCRIPT: TAI HUB FIND FRUIT - V6.0 PERFECT EDITION
--- INSTANT TEAM SELECT - INSTANT UI LOAD - ZERO CRASH ON DELTA
+-- SCRIPT: TAI HUB - FIND FRUIT V6.0 (FULL PERFECT EDITION)
+-- INSTANT TEAM SELECT - INSTANT UI LOAD - AUTO DISMISS ERROR 772
 -- =================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -21,7 +21,7 @@ pcall(function()
     if commF then commF:InvokeServer("SetTeam", "Marines") end
 end)
 
--- 2. TẠO GIAO DIỆN HIỆN NGAY TỨC THÌ (INSTANT UI)
+-- 2. TẠO GIAO DIỆN TAI HUB - FIND FRUIT VUÔNG VẮN, KHÔNG BỊ TREO (INSTANT UI)
 if CoreGui:FindFirstChild("TaiHubUI_V6") then
     CoreGui.TaiHubUI_V6:Destroy()
 end
@@ -31,7 +31,7 @@ ScreenGui.Name = "TaiHubUI_V6"
 ScreenGui.Parent = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 290, 0, 185) -- Form vuông nhỏ gọn
+MainFrame.Size = UDim2.new(0, 290, 0, 185) -- Tỷ lệ vuông vắn, tỉ mỉ
 MainFrame.Position = UDim2.new(0.5, -145, 0.35, -92)
 MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
 MainFrame.Active = true
@@ -44,7 +44,7 @@ local MainStroke = Instance.new("UIStroke", MainFrame)
 MainStroke.Thickness = 2
 MainStroke.Color = Color3.fromRGB(168, 85, 247)
 
--- Header Bar
+-- Header Bar (Tai Hub - Find Fruit)
 local Header = Instance.new("Frame", MainFrame)
 Header.Size = UDim2.new(1, 0, 0, 34)
 Header.BackgroundColor3 = Color3.fromRGB(28, 28, 44)
@@ -55,7 +55,7 @@ local TitleText = Instance.new("TextLabel", Header)
 TitleText.Size = UDim2.new(1, -10, 1, 0)
 TitleText.Position = UDim2.new(0, 10, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "💎 TAI HUB - FIND FRUIT V6.0 💎"
+TitleText.Text = "✨ TAI HUB - FIND FRUIT ✨"
 TitleText.TextColor3 = Color3.fromRGB(245, 208, 75)
 TitleText.TextSize = 13
 TitleText.Font = Enum.Font.FredokaOne
@@ -156,7 +156,7 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- 3. AUTO DISMISS LỖI 772 AN TOÀN TRÊN DELTA
+-- 3. AUTO DISMISS LỖI 772 AN TOÀN TRÊN DELTA EXECUTOR
 task.spawn(function()
     while task.wait(0.5) do
         pcall(function()
@@ -238,7 +238,7 @@ task.spawn(function()
     end
 end)
 
--- 5. XÓA BẢNG CHỌN PHE TRÊN MAN HÌNH
+-- 5. XÓA BẢNG CHỌN PHE TRÊN MÀN HÌNH
 task.spawn(function()
     while task.wait(0.2) do
         if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
@@ -429,7 +429,7 @@ local function PickupAndStore(fruitObj)
     end
 end
 
--- 9. HOP SERVER CHUẨN XÁC CHỈ TÌM SERVER 1-3 NGƯỜI (NÉ SERVER FULL)
+-- 9. HOP SERVER TÌM SERVER 1-3 NGƯỜI (TRÁNH DÍNH SERVER FULL & LOẠI TRỪ HACK BOT)
 local function ForceHopServer()
     if not _G.TaiHubActive or isHopping then return end
     isHopping = true
