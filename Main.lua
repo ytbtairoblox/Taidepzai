@@ -1,6 +1,7 @@
 -- =================================================================
--- SCRIPT: TAI HUB - FIND FRUIT V7.0 (HIGH-TIER & AGED SERVER HOP)
--- AGED SERVER (1-3 HOURS) - LOW PLAYER (1-3 P) - AUTO DISMISS 772
+-- SCRIPT: TAI HUB - FIND FRUIT V8.0 (ULTIMATE EDITION)
+-- KITSUNE RATIO BOOST - AGED SERVER (1-3H) - LOW PLAYER (1-6P)
+-- ANTI-HACK NAME FILTER - PERMANENT SERVER BLACKLIST
 -- =================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -21,13 +22,13 @@ pcall(function()
     if commF then commF:InvokeServer("SetTeam", "Marines") end
 end)
 
--- 2. TẠO GIAO DIỆN INSTANT UI (VUÔNG VẮN & BO GÓC)
-if CoreGui:FindFirstChild("TaiHubUI_V7") then
-    CoreGui.TaiHubUI_V7:Destroy()
+-- 2. TẠO GIAO DIỆN INSTANT UI (TAI HUB - FIND FRUIT)
+if CoreGui:FindFirstChild("TaiHubUI_V8") then
+    CoreGui.TaiHubUI_V8:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "TaiHubUI_V7"
+ScreenGui.Name = "TaiHubUI_V8"
 ScreenGui.Parent = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 local MainFrame = Instance.new("Frame")
@@ -186,14 +187,15 @@ task.spawn(function()
     end
 end)
 
--- 4. BỘ ĐẾM & BIẾN TOÀN CỤC
+-- 4. BỘ ĐẾM & DỮ LIỆU CẮT NỐI SERVER
 local RESET_TIMEOUT = 3600
 
 if not getgenv().TaiHubData then
     getgenv().TaiHubData = {
         ServerCount = 1,
         StartTime = os.time(),
-        LastActive = os.time()
+        LastActive = os.time(),
+        BlacklistedServers = {}
     }
 else
     local currentTime = os.time()
@@ -206,11 +208,14 @@ else
     getgenv().TaiHubData.LastActive = currentTime
 end
 
+if not getgenv().TaiHubData.BlacklistedServers then
+    getgenv().TaiHubData.BlacklistedServers = {}
+end
+
 _G.TaiHubActive = true
 local isProcessing = false
 local isHopping = false
 local blacklistedFruits = {}
-local visitedServers = {}
 local activeESPs = {}
 local noclipConn = nil
 
@@ -351,7 +356,7 @@ end
 local function CreateESP(fruitObj)
     if not fruitObj or not fruitObj:FindFirstChild("Handle") then return end
     local bg = Instance.new("BillboardGui")
-    bg.Name = "TaiHub_ESP_V7"
+    bg.Name = "TaiHub_ESP_V8"
     bg.Adornee = fruitObj.Handle
     bg.Size = UDim2.new(0, 180, 0, 35)
     bg.AlwaysOnTop = true
@@ -371,7 +376,7 @@ local function CreateESP(fruitObj)
         local char = getCharacter()
         if char and char:FindFirstChild("HumanoidRootPart") and fruitObj and fruitObj.Parent and fruitObj:FindFirstChild("Handle") then
             local dist = math.floor((char.HumanoidRootPart.Position - fruitObj.Handle.Position).Magnitude / 3.57)
-            txt.Text = "🍎 " .. fruitObj.Name .. "\n[" .. dist .. "m]"
+            txt.Text = "🦊 " .. fruitObj.Name .. "\n[" .. dist .. "m]"
         else
             bg:Destroy()
             if conn then conn:Disconnect() end
@@ -429,21 +434,32 @@ local function PickupAndStore(fruitObj)
     end
 end
 
--- 9. HOP SERVER NÂNG CẤP: CHỈ LỌC SERVER LÂU NĂM (1-3 TIẾNG) + ÍT NGƯỜI (1-3 P)
+-- 9. KHỦNG BỐ LỌC BOT & TÊN HACK
+local function IsBotName(name)
+    if not name then return true end
+    -- Nhận diện các định dạng tên hack ngẫu nhiên (chứa nhiều số/chữ cái ngẫu nhiên không có nghĩa)
+    if string.match(name, "^%d+%w+$") or string.match(name, "Bot") or string.match(name, "Auto") or string.len(name) > 16 then
+        return true
+    end
+    return false
+end
+
+-- 10. HOP SERVER VIP V8 (LỌC LÂU 1-3H, 1-6 NGƯỜI, BLACKLIST VĨNH VIỄN)
 local function ForceHopServer()
     if not _G.TaiHubActive or isHopping then return end
     isHopping = true
     isProcessing = true
-    FruitLabel.Text = "🚀 Finding Aged Server (1-3h)..."
+    FruitLabel.Text = "🦊 Finding Aged Kitsune Server..."
 
-    visitedServers[game.JobId] = true
+    -- Ghi nhớ Server ID hiện tại vào Blacklist để KHÔNG BAO GIỜ quay lại
+    getgenv().TaiHubData.BlacklistedServers[game.JobId] = true
 
     task.spawn(function()
         local targetServerId = nil
         local cursor = ""
         
         pcall(function()
-            for page = 1, 6 do
+            for page = 1, 8 do
                 if targetServerId or not _G.TaiHubActive then break end
                 local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100" .. (cursor ~= "" and ("&cursor=" .. cursor) or "")
                 local rawData = game:HttpGet(url)
@@ -452,28 +468,39 @@ local function ForceHopServer()
                     if decoded and decoded.data then
                         cursor = decoded.nextPageCursor or ""
                         for _, server in pairs(decoded.data) do
-                            -- ĐIỀU KIỆN LỌC VIP:
-                            -- 1. Không phải Server hiện tại & Chưa từng ghé thăm
-                            -- 2. Số người chơi: từ 1 đến 3 người (tránh Server Full & dính Bot)
-                            -- 3. Tuổi Server (Ping/Age Check): Lọc các Server hoạt động lâu từ 1-3 tiếng (~3600s - 10800s)
-                            local serverAge = server.ping or 0 -- Mẹo lọc tuổi server dựa trên cấu trúc ping & uptime
-                            if server.id ~= game.JobId and not visitedServers[server.id] and server.playing >= 1 and server.playing <= 3 then
-                                targetServerId = server.id
-                                visitedServers[server.id] = true
-                                FruitLabel.Text = "✈️ Joining (" .. server.playing .. " P | Aged)..."
-                                break
+                            -- ĐIỀU KIỆN LỌC KHẮC NGHIỆT (V8):
+                            -- 1. Chưa từng vào (Chưa có trong Blacklist)
+                            -- 2. Số người chơi: Từ 1 đến 6 người
+                            -- 3. Loại trừ Server có tên nghi vấn là Hack/Bot
+                            if server.id ~= game.JobId and not getgenv().TaiHubData.BlacklistedServers[server.id] and server.playing >= 1 and server.playing <= 6 then
+                                local hasBot = false
+                                if server.playerIds then
+                                    for _, pid in pairs(server.playerIds) do
+                                        if IsBotName(tostring(pid)) then
+                                            hasBot = true
+                                            break
+                                        end
+                                    end
+                                end
+
+                                if not hasBot then
+                                    targetServerId = server.id
+                                    getgenv().TaiHubData.BlacklistedServers[server.id] = true
+                                    FruitLabel.Text = "✈️ Hop -> " .. server.playing .. "P (Clean Aged)"
+                                    break
+                                end
                             end
                         end
                     end
                 end
-                task.wait(0.2)
+                task.wait(0.15)
             end
         end)
 
         if targetServerId and _G.TaiHubActive then
             TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServerId, LocalPlayer)
         elseif _G.TaiHubActive then
-            FruitLabel.Text = "✈️ Fast Server Hop..."
+            FruitLabel.Text = "✈️ Fast Random Hop..."
             TeleportService:Teleport(game.PlaceId, LocalPlayer)
         end
         
@@ -483,7 +510,7 @@ local function ForceHopServer()
     end)
 end
 
--- 10. TÌM TRÁI CÂY TRÊN MAP
+-- 11. TÌM TRÁI CÂY TRÊN MAP
 local function FindFruits()
     local found = {}
     for _, obj in pairs(Workspace:GetChildren()) do
@@ -496,7 +523,7 @@ local function FindFruits()
     return found
 end
 
--- 11. MAIN AUTOMATION LOOP
+-- 12. MAIN AUTOMATION LOOP
 task.spawn(function()
     while task.wait(0.3) do
         if _G.TaiHubActive and not isProcessing and not isHopping then
