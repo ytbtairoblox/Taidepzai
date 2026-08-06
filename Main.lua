@@ -1,6 +1,7 @@
 -- =================================================================
--- SCRIPT: TAI HUB FIND FRUIT (REAL VIRTUAL E-KEY PICKUP ENGINE)
--- SMOOTH TWEEN -> ENABLE TOUCH/PROXIMITY PROMPT -> FAST STORE -> HOP
+-- SCRIPT: TAI HUB - FIND FRUIT V8.0 (ULTIMATE EDITION)
+-- KITSUNE RATIO BOOST - AGED SERVER (1-3H) - LOW PLAYER (1-6P)
+-- ANTI-HACK NAME FILTER - PERMANENT SERVER BLACKLIST
 -- =================================================================
 
 local CoreGui = game:GetService("CoreGui")
@@ -12,119 +13,127 @@ local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
-local Stats = game:GetService("Stats")
-local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
 
--- QUEUE ON TELEPORT
-local queue_on_teleport = (syn and syn.queue_on_teleport) or queue_on_teleport or (fluxus and fluxus.queue_on_teleport)
-if queue_on_teleport and getgenv().TaiHubScriptSource then
-    queue_on_teleport([[
-        repeat task.wait() until game:IsLoaded()
-        ]] .. getgenv().TaiHubScriptSource .. [[
-    ]])
-end
-
--- GET CHARACTER
-local function getCharacter()
-    local char = LocalPlayer.Character
-    if char then
-        local hrp = char:FindFirstChild("HumanoidRootPart")
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if hrp and hum and hum.Health > 0 then
-            if hum.Sit then hum.Sit = false end
-            return char, hrp, hum
-        end
-    end
-    return nil, nil, nil
-end
-
--- AUTO SET TEAM MARINES
+-- 1. CHỌN PHE NGAY LẬP TỨC
 pcall(function()
-    local commF = ReplicatedStorage:WaitForChild("Remotes", 3) and ReplicatedStorage.Remotes:WaitForChild("CommF_", 3)
+    local commF = ReplicatedStorage:WaitForChild("Remotes", 2) and ReplicatedStorage.Remotes:WaitForChild("CommF_", 2)
     if commF then commF:InvokeServer("SetTeam", "Marines") end
 end)
 
--- UI SYSTEM (TAI HUB FIND FRUIT)
-if CoreGui:FindFirstChild("TaiHubFindFruit") then
-    CoreGui.TaiHubFindFruit:Destroy()
+-- 2. TẠO GIAO DIỆN INSTANT UI (TAI HUB - FIND FRUIT)
+if CoreGui:FindFirstChild("TaiHubUI_V8") then
+    CoreGui.TaiHubUI_V8:Destroy()
 end
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "TaiHubFindFruit"
+ScreenGui.Name = "TaiHubUI_V8"
 ScreenGui.Parent = (gethui and gethui()) or CoreGui or LocalPlayer:WaitForChild("PlayerGui")
 
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 330, 0, 250)
-MainFrame.Position = UDim2.new(0.5, -165, 0.25, -125)
-MainFrame.BackgroundColor3 = Color3.fromRGB(12, 12, 18)
+MainFrame.Size = UDim2.new(0, 290, 0, 185)
+MainFrame.Position = UDim2.new(0.5, -145, 0.35, -92)
+MainFrame.BackgroundColor3 = Color3.fromRGB(18, 18, 28)
 MainFrame.Active = true
 MainFrame.ClipsDescendants = true
 MainFrame.Parent = ScreenGui
 
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 12)
+
 local MainStroke = Instance.new("UIStroke", MainFrame)
-MainStroke.Thickness = 1.5
+MainStroke.Thickness = 2
 MainStroke.Color = Color3.fromRGB(168, 85, 247)
 
--- Header
+-- Header Bar
 local Header = Instance.new("Frame", MainFrame)
-Header.Size = UDim2.new(1, 0, 0, 32)
-Header.BackgroundColor3 = Color3.fromRGB(20, 20, 30)
+Header.Size = UDim2.new(1, 0, 0, 34)
+Header.BackgroundColor3 = Color3.fromRGB(28, 28, 44)
 Header.BorderSizePixel = 0
-Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 10)
+Instance.new("UICorner", Header).CornerRadius = UDim.new(0, 12)
 
 local TitleText = Instance.new("TextLabel", Header)
 TitleText.Size = UDim2.new(1, -10, 1, 0)
 TitleText.Position = UDim2.new(0, 10, 0, 0)
 TitleText.BackgroundTransparency = 1
-TitleText.Text = "✨ TAI HUB FIND FRUIT ✨"
+TitleText.Text = "✨ TAI HUB - FIND FRUIT ✨"
 TitleText.TextColor3 = Color3.fromRGB(245, 208, 75)
-TitleText.TextSize = 12
+TitleText.TextSize = 13
 TitleText.Font = Enum.Font.FredokaOne
 TitleText.TextXAlignment = Enum.TextXAlignment.Left
 
--- Container
-local Container = Instance.new("Frame", MainFrame)
-Container.Size = UDim2.new(1, -20, 0, 160)
-Container.Position = UDim2.new(0, 10, 0, 38)
-Container.BackgroundTransparency = 1
+-- Left Container
+local LeftContainer = Instance.new("Frame", MainFrame)
+LeftContainer.Size = UDim2.new(0, 180, 1, -85)
+LeftContainer.Position = UDim2.new(0, 10, 0, 40)
+LeftContainer.BackgroundTransparency = 1
 
-local function CreateLabel(posY, text, color)
-    local lbl = Instance.new("TextLabel", Container)
-    lbl.Size = UDim2.new(1, 0, 0, 16)
-    lbl.Position = UDim2.new(0, 0, 0, posY)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = text
-    lbl.TextColor3 = color or Color3.fromRGB(203, 213, 225)
-    lbl.TextSize = 10
-    lbl.Font = Enum.Font.SourceSansBold
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    return lbl
-end
+local TimeLabel = Instance.new("TextLabel", LeftContainer)
+TimeLabel.Size = UDim2.new(1, 0, 0, 18)
+TimeLabel.Position = UDim2.new(0, 0, 0, 0)
+TimeLabel.BackgroundTransparency = 1
+TimeLabel.Text = "⏳ Time: 00:00:00"
+TimeLabel.TextColor3 = Color3.fromRGB(203, 213, 225)
+TimeLabel.TextSize = 11
+TimeLabel.Font = Enum.Font.SourceSansBold
+TimeLabel.TextXAlignment = Enum.TextXAlignment.Left
 
-local TimeLabel = CreateLabel(0, "⏳ Elapsed: 00:00:00 | 📶 Ping: 0 ms")
-local ServerLabel = CreateLabel(18, "🌐 Server Checked: 1", Color3.fromRGB(56, 189, 248))
-local ApiLabel = CreateLabel(36, "📡 Server JobID: " .. string.sub(game.JobId, 1, 12) .. "...", Color3.fromRGB(192, 132, 252))
-local PlayersOnlineLabel = CreateLabel(54, "👥 Players Online: " .. #Players:GetPlayers() .. " (Target: 1-5)", Color3.fromRGB(74, 222, 128))
-local FruitLabel = CreateLabel(72, "🔍 Status: Initializing Engine...", Color3.fromRGB(250, 204, 21))
-local DetailLabel = CreateLabel(90, "💡 Action: Scanning Map...", Color3.fromRGB(148, 163, 184))
-local TargetLabel = CreateLabel(108, "🍎 Target: None", Color3.fromRGB(168, 85, 247))
-local StoreAttemptLabel = CreateLabel(126, "📦 Store Attempts: 0", Color3.fromRGB(52, 211, 153))
+local ServerLabel = Instance.new("TextLabel", LeftContainer)
+ServerLabel.Size = UDim2.new(1, 0, 0, 18)
+ServerLabel.Position = UDim2.new(0, 0, 0, 18)
+ServerLabel.BackgroundTransparency = 1
+ServerLabel.Text = "🌐 Server Checked: 1"
+ServerLabel.TextColor3 = Color3.fromRGB(56, 189, 248)
+ServerLabel.TextSize = 11
+ServerLabel.Font = Enum.Font.SourceSansBold
+ServerLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+local FruitLabel = Instance.new("TextLabel", LeftContainer)
+FruitLabel.Size = UDim2.new(1, 0, 0, 20)
+FruitLabel.Position = UDim2.new(0, 0, 0, 36)
+FruitLabel.BackgroundTransparency = 1
+FruitLabel.Text = "🍎 Status: Starting..."
+FruitLabel.TextColor3 = Color3.fromRGB(250, 204, 21)
+FruitLabel.TextSize = 12
+FruitLabel.Font = Enum.Font.SourceSansBold
+FruitLabel.TextXAlignment = Enum.TextXAlignment.Left
+
+-- Right Container
+local RightContainer = Instance.new("Frame", MainFrame)
+RightContainer.Size = UDim2.new(0, 80, 0, 56)
+RightContainer.Position = UDim2.new(1, -90, 0, 40)
+RightContainer.BackgroundColor3 = Color3.fromRGB(26, 26, 40)
+Instance.new("UICorner", RightContainer).CornerRadius = UDim.new(0, 8)
+
+local AvatarImage = Instance.new("ImageLabel", RightContainer)
+AvatarImage.Size = UDim2.new(0, 36, 0, 36)
+AvatarImage.Position = UDim2.new(0.5, -18, 0, 4)
+AvatarImage.BackgroundTransparency = 1
+AvatarImage.Image = "rbxthumb://type=AvatarHeadShot&id=" .. LocalPlayer.UserId .. "&w=150&h=150"
+Instance.new("UICorner", AvatarImage).CornerRadius = UDim.new(1, 0)
+
+local PlayerName = Instance.new("TextLabel", RightContainer)
+PlayerName.Size = UDim2.new(1, -4, 0, 12)
+PlayerName.Position = UDim2.new(0, 2, 0, 42)
+PlayerName.BackgroundTransparency = 1
+PlayerName.Text = LocalPlayer.DisplayName
+PlayerName.TextColor3 = Color3.fromRGB(255, 255, 255)
+PlayerName.TextSize = 9
+PlayerName.Font = Enum.Font.SourceSansBold
+PlayerName.TextTruncate = Enum.TextTruncate.AtEnd
 
 -- Toggle Button
 local ToggleBtn = Instance.new("TextButton", MainFrame)
-ToggleBtn.Size = UDim2.new(1, -20, 0, 32)
-ToggleBtn.Position = UDim2.new(0, 10, 1, -38)
+ToggleBtn.Size = UDim2.new(1, -20, 0, 34)
+ToggleBtn.Position = UDim2.new(0, 10, 1, -42)
 ToggleBtn.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
-ToggleBtn.Text = "⚡ TAI HUB FIND FRUIT: ACTIVE ⚡"
+ToggleBtn.Text = "⚡ AUTO FARM: ON ⚡"
 ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-ToggleBtn.TextSize = 11
+ToggleBtn.TextSize = 12
 ToggleBtn.Font = Enum.Font.FredokaOne
-Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 6)
+Instance.new("UICorner", ToggleBtn).CornerRadius = UDim.new(0, 8)
 
--- Dragging UI
+-- Kéo thả UI
 local dragging, dragInput, dragStart, startPos
 MainFrame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -136,9 +145,11 @@ MainFrame.InputBegan:Connect(function(input)
         end)
     end
 end)
+
 MainFrame.InputChanged:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
 end)
+
 UserInputService.InputChanged:Connect(function(input)
     if input == dragInput and dragging then
         local delta = input.Position - dragStart
@@ -146,424 +157,404 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
--- DATA PERSISTENCE & BLACKLIST
-if not getgenv().TaiHubData then
-    getgenv().TaiHubData = { ServerCount = 1, StartTime = os.time(), LastActive = os.time(), BlacklistedServers = {} }
-else
-    if (os.time() - getgenv().TaiHubData.LastActive) > 7200 then
-        getgenv().TaiHubData.ServerCount = 1
-        getgenv().TaiHubData.StartTime = os.time()
-    else
-        getgenv().TaiHubData.ServerCount = getgenv().TaiHubData.ServerCount + 1
-    end
-    getgenv().TaiHubData.LastActive = os.time()
-end
-
-getgenv().TaiHubData.BlacklistedServers[game.JobId] = true
-
-_G.TaiHubActive = true
-local isProcessing = false
-local isHopping = false
-local blacklistedFruits = {}
-
-ToggleBtn.MouseButton1Click:Connect(function()
-    _G.TaiHubActive = not _G.TaiHubActive
-    if _G.TaiHubActive then
-        ToggleBtn.Text = "⚡ TAI HUB FIND FRUIT: ACTIVE ⚡"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
-    else
-        ToggleBtn.Text = "⛔ TAI HUB FIND FRUIT: PAUSED ⛔"
-        ToggleBtn.BackgroundColor3 = Color3.fromRGB(239, 68, 68)
-        FruitLabel.Text = "⏸️ Status: Paused"
-        DetailLabel.Text = "💡 Action: Engine Halted"
-        isProcessing = false
-        isHopping = false
-    end
-end)
-
--- CHECK TRÁI CHUẨN
-local function IsRealFruit(obj)
-    if not obj or not obj.Parent or obj.Parent ~= Workspace then return false end
-    if not (obj:IsA("Tool") or obj:IsA("Model")) then return false end
-    if not string.find(obj.Name, "Fruit") then return false end
-    if blacklistedFruits[obj] then return false end
-
-    local handle = obj:FindFirstChild("Handle") or obj:FindFirstChildOfClass("BasePart")
-    if not handle then return false end
-
-    return true, handle
-end
-
--- ESP HIỆN TÊN & KHỎANG CÁCH
-local function UpdateFruitESP()
-    for _, obj in pairs(Workspace:GetChildren()) do
-        local isReal, handle = IsRealFruit(obj)
-        if isReal and handle then
-            if not handle:FindFirstChild("FruitESP_UI") then
-                local billboard = Instance.new("BillboardGui")
-                billboard.Name = "FruitESP_UI"
-                billboard.Adornee = handle
-                billboard.Size = UDim2.new(0, 200, 0, 40)
-                billboard.AlwaysOnTop = true
-                billboard.ExtentsOffset = Vector3.new(0, 2.5, 0)
-                billboard.Parent = handle
-
-                local label = Instance.new("TextLabel", billboard)
-                label.Size = UDim2.new(1, 0, 1, 0)
-                label.BackgroundTransparency = 1
-                label.TextColor3 = Color3.fromRGB(255, 40, 40)
-                label.TextStrokeTransparency = 0
-                label.TextSize = 14
-                label.Font = Enum.Font.SourceSansBold
-
-                local highlight = Instance.new("Highlight")
-                highlight.Name = "FruitESP_Glow"
-                highlight.Adornee = obj
-                highlight.FillColor = Color3.fromRGB(255, 0, 100)
-                highlight.OutlineColor = Color3.fromRGB(255, 255, 255)
-                highlight.FillTransparency = 0.4
-                highlight.Parent = handle
-            end
-
-            local espUI = handle:FindFirstChild("FruitESP_UI")
-            if espUI and espUI:FindFirstChildOfClass("TextLabel") then
-                local _, hrp = getCharacter()
-                local dist = hrp and math.floor((handle.Position - hrp.Position).Magnitude / 3.57) or 0
-                espUI.TextLabel.Text = "🍎 " .. obj.Name .. "\n[" .. dist .. "m]"
-            end
-        end
-    end
-end
-
--- BACKGROUND SYSTEM LOOP
+-- 3. AUTO DISMISS LỖI 772 AN TOÀN
 task.spawn(function()
-    while task.wait(0.3) do
-        if _G.TaiHubActive then
-            getgenv().TaiHubData.LastActive = os.time()
-            local elapsed = os.time() - getgenv().TaiHubData.StartTime
-            
-            local currentPing = 0
-            pcall(function()
-                currentPing = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-            end)
-
-            TimeLabel.Text = string.format("⏳ Elapsed: %02d:%02d:%02d | 📶 Ping: %d ms", math.floor(elapsed/3600), math.floor((elapsed%3600)/60), elapsed%60, currentPing)
-            ServerLabel.Text = "🌐 Server Checked: " .. getgenv().TaiHubData.ServerCount
-            PlayersOnlineLabel.Text = "👥 Players Online: " .. #Players:GetPlayers() .. " (Target: 1-5)"
-
-            pcall(UpdateFruitESP)
-
-            -- Clear Error Prompt
-            pcall(function()
-                local promptGui = CoreGui:FindFirstChild("RobloxPromptGui")
-                if promptGui then
-                    local promptOverlay = promptGui:FindFirstChild("promptOverlay")
-                    if promptOverlay and promptOverlay:FindFirstChild("ErrorPrompt") and promptOverlay.ErrorPrompt.Visible then
-                        GuiService:ClearSelectedObject()
-                        local btn = promptOverlay.ErrorPrompt:FindFirstChild("ButtonArea") and promptOverlay.ErrorPrompt.ButtonArea:FindFirstChildOfClass("TextButton")
-                        if btn then
-                            GuiService.SelectedObject = btn
-                            task.wait(0.05)
-                            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Return, false, game)
-                            VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.Return, false, game)
-                        end
-                    end
-                end
-            end)
-        end
-    end
-end)
-
--- GET VALID FRUITS ON MAP
-local function GetValidFruitsOnMap()
-    local validFruits = {}
-    local _, hrp = getCharacter()
-    if not hrp then return validFruits end
-
-    for _, obj in pairs(Workspace:GetChildren()) do
-        local isReal, handle = IsRealFruit(obj)
-        if isReal and handle then
-            local dist = (handle.Position - hrp.Position).Magnitude
-            table.insert(validFruits, { object = obj, handle = handle, distance = dist })
-        end
-    end
-
-    table.sort(validFruits, function(a, b) return a.distance < b.distance end)
-    return validFruits
-end
-
--- GET FRUIT IN INVENTORY
-local function GetFruitInInventory()
-    local char = getCharacter()
-    for _, container in pairs({LocalPlayer.Backpack, char}) do
-        if container then
-            for _, item in pairs(container:GetChildren()) do
-                if item:IsA("Tool") and string.find(item.Name, "Fruit") then
-                    return item
-                end
-            end
-        end
-    end
-    return nil
-end
-
--- SMART HOP SERVER (1 - 5 PLAYERS)
-local function SmartHopServer()
-    if not _G.TaiHubActive or isHopping then return end
-    isHopping = true
-    isProcessing = true
-
-    getgenv().TaiHubData.BlacklistedServers[game.JobId] = true
-    FruitLabel.Text = "✈️ Status: API Scanning (1-5 Players)..."
-
-    local function AttemptHop()
-        local targetServerId = nil
-        local targetPlayerCount = 0
-        local cursor = ""
-        local validCandidateServers = {}
-
+    while task.wait(0.5) do
         pcall(function()
-            local randomStartPage = math.random(1, 4)
-            for page = 1, 10 do
-                if not _G.TaiHubActive then break end
-                local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100" .. (cursor ~= "" and ("&cursor=" .. cursor) or "")
-                local rawData = game:HttpGet(url)
-                
-                if rawData then
-                    local decoded = HttpService:JSONDecode(rawData)
-                    if decoded and decoded.data then
-                        cursor = decoded.nextPageCursor or ""
-                        if page >= randomStartPage then
-                            for _, server in pairs(decoded.data) do
-                                local playing = server.playing or 0
-                                if server.id ~= game.JobId 
-                                   and not getgenv().TaiHubData.BlacklistedServers[server.id] 
-                                   and playing >= 1 and playing <= 5 then
-                                    table.insert(validCandidateServers, { id = server.id, playing = playing })
+            local promptGui = CoreGui:FindFirstChild("RobloxPromptGui")
+            if promptGui then
+                local promptOverlay = promptGui:FindFirstChild("promptOverlay")
+                if promptOverlay then
+                    local errorPrompt = promptOverlay:FindFirstChild("ErrorPrompt")
+                    if errorPrompt and errorPrompt.Visible then
+                        GuiService:ClearSelectedObject()
+                        local buttonArea = errorPrompt:FindFirstChild("ButtonArea")
+                        if buttonArea then
+                            local okBtn = buttonArea:FindFirstChildOfClass("TextButton")
+                            if okBtn then
+                                GuiService.SelectedObject = okBtn
+                                task.wait(0.1)
+                                if GuiService.SelectedObject == okBtn then
+                                    game:GetService("VirtualInputManager"):SendKeyEvent(true, Enum.KeyCode.Return, false, game)
+                                    game:GetService("VirtualInputManager"):SendKeyEvent(false, Enum.KeyCode.Return, false, game)
                                 end
                             end
                         end
                     end
                 end
-                if #validCandidateServers >= 3 then break end
-                task.wait(0.05)
             end
         end)
-
-        if #validCandidateServers > 0 then
-            local chosen = validCandidateServers[math.random(1, #validCandidateServers)]
-            targetServerId = chosen.id
-            targetPlayerCount = chosen.playing
-            getgenv().TaiHubData.BlacklistedServers[targetServerId] = true
-        end
-
-        if targetServerId and _G.TaiHubActive then
-            FruitLabel.Text = "✈️ Status: Teleporting..."
-            DetailLabel.Text = "🌐 Target Server: [" .. targetPlayerCount .. " Players]"
-            ApiLabel.Text = "📡 Next Server: " .. string.sub(targetServerId, 1, 12) .. "..."
-            task.wait(0.2)
-            TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServerId, LocalPlayer)
-            return true
-        end
-        return false
     end
+end)
 
-    local success = AttemptHop()
-    if not success and _G.TaiHubActive then
-        DetailLabel.Text = "⚠️ Searching Fallback Server..."
-        task.wait(0.5)
-        TeleportService:Teleport(game.PlaceId, LocalPlayer)
+-- 4. BỘ ĐẾM & DỮ LIỆU CẮT NỐI SERVER
+local RESET_TIMEOUT = 3600
+
+if not getgenv().TaiHubData then
+    getgenv().TaiHubData = {
+        ServerCount = 1,
+        StartTime = os.time(),
+        LastActive = os.time(),
+        BlacklistedServers = {}
+    }
+else
+    local currentTime = os.time()
+    if (currentTime - getgenv().TaiHubData.LastActive) > RESET_TIMEOUT then
+        getgenv().TaiHubData.ServerCount = 1
+        getgenv().TaiHubData.StartTime = currentTime
+    else
+        getgenv().TaiHubData.ServerCount = getgenv().TaiHubData.ServerCount + 1
     end
-
-    task.delay(8, function()
-        isHopping = false
-        isProcessing = false
-    end)
+    getgenv().TaiHubData.LastActive = currentTime
 end
 
--- TWEEN CHUẨN TỚI TRÁI
-local function SafeTweenToFruit(fruitData)
-    local handle = fruitData.handle
-    local targetFruit = fruitData.object
+if not getgenv().TaiHubData.BlacklistedServers then
+    getgenv().TaiHubData.BlacklistedServers = {}
+end
 
-    local char, hrp = getCharacter()
-    if not char or not hrp then return "ERROR" end
+_G.TaiHubActive = true
+local isProcessing = false
+local isHopping = false
+local blacklistedFruits = {}
+local activeESPs = {}
+local noclipConn = nil
 
-    local noclipConn = RunService.Stepped:Connect(function()
+ToggleBtn.MouseButton1Click:Connect(function()
+    _G.TaiHubActive = not _G.TaiHubActive
+    if _G.TaiHubActive then
+        ToggleBtn.Text = "⚡ AUTO FARM: ON ⚡"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(34, 197, 94)
+    else
+        ToggleBtn.Text = "⛔ AUTO FARM: OFF ⛔"
+        ToggleBtn.BackgroundColor3 = Color3.fromRGB(239, 68, 68)
+        FruitLabel.Text = "🍎 Status: Paused"
+        if noclipConn then noclipConn:Disconnect() noclipConn = nil end
+        isProcessing = false
+        isHopping = false
+    end
+end)
+
+task.spawn(function()
+    while task.wait(1) do
+        getgenv().TaiHubData.LastActive = os.time()
+        local elapsed = os.time() - getgenv().TaiHubData.StartTime
+        TimeLabel.Text = string.format("⏳ Time: %02d:%02d:%02d", math.floor(elapsed/3600), math.floor((elapsed%3600)/60), elapsed%60)
+        ServerLabel.Text = "🌐 Server Checked: " .. getgenv().TaiHubData.ServerCount
+    end
+end)
+
+-- 5. XÓA BẢNG CHỌN PHE TRÊN MÀN HÌNH
+task.spawn(function()
+    while task.wait(0.2) do
+        if LocalPlayer and LocalPlayer:FindFirstChild("PlayerGui") then
+            if LocalPlayer.PlayerGui:FindFirstChild("ChooseTeam") then
+                LocalPlayer.PlayerGui.ChooseTeam:Destroy()
+            end
+            if LocalPlayer.Team ~= nil or LocalPlayer:FindFirstChild("Data") then break end
+        end
+    end
+end)
+
+-- 6. TÊN TRÁI CÂY & UTILS
+local FruitNameMap = {
+    ["Rocket Fruit"]    = "Rocket-Rocket",   ["Spin Fruit"]      = "Spin-Spin",
+    ["Blade Fruit"]     = "Chop-Chop",       ["Spring Fruit"]    = "Spring-Spring",
+    ["Bomb Fruit"]      = "Bomb-Bomb",       ["Smoke Fruit"]     = "Smoke-Smoke",
+    ["Spike Fruit"]     = "Spike-Spike",     ["Flame Fruit"]     = "Flame-Flame",
+    ["Ice Fruit"]       = "Ice-Ice",         ["Sand Fruit"]      = "Sand-Sand",
+    ["Dark Fruit"]      = "Dark-Dark",       ["Eagle Fruit"]     = "Falcon-Falcon",
+    ["Diamond Fruit"]   = "Diamond-Diamond", ["Light Fruit"]     = "Light-Light",
+    ["Rubber Fruit"]    = "Rubber-Rubber",   ["Ghost Fruit"]     = "Ghost-Ghost",
+    ["Magma Fruit"]     = "Magma-Magma",     ["Quake Fruit"]     = "Quake-Quake",
+    ["Buddha Fruit"]    = "Buddha-Buddha",   ["Love Fruit"]      = "Love-Love",
+    ["Creation Fruit"]  = "Barrier-Barrier", ["Spider Fruit"]    = "Spider-Spider",
+    ["Sound Fruit"]     = "Sound-Sound",     ["Phoenix Fruit"]   = "Phoenix-Phoenix",
+    ["Portal Fruit"]    = "Portal-Portal",   ["Lightning Fruit"] = "Rumble-Rumble",
+    ["Pain Fruit"]      = "Pain-Pain",       ["Blizzard Fruit"]  = "Blizzard-Blizzard",
+    ["Gravity Fruit"]   = "Gravity-Gravity", ["Mammoth Fruit"]   = "Mammoth-Mammoth",
+    ["T-Rex Fruit"]     = "TRex-TRex",       ["Dough Fruit"]     = "Dough-Dough",
+    ["Shadow Fruit"]    = "Shadow-Shadow",   ["Venom Fruit"]     = "Venom-Venom",
+    ["Gas Fruit"]       = "Gas-Gas",         ["Spirit Fruit"]    = "Spirit-Spirit",
+    ["Tiger Fruit"]     = "Leopard-Leopard", ["Yeti Fruit"]      = "Yeti-Yeti",
+    ["Kitsune Fruit"]   = "Kitsune-Kitsune", ["Control Fruit"]   = "Control-Control",
+    ["Dragon Fruit"]    = "Dragon-Dragon"
+}
+
+local function getStoreName(rawName)
+    if FruitNameMap[rawName] then return FruitNameMap[rawName] end
+    local clean = rawName:gsub(" Fruit", ""):gsub(" Fruit ", ""):gsub("^%s*(.-)%s*$", "%1"):gsub("[^%w]", "")
+    return clean .. "-" .. clean
+end
+
+local function getCharacter()
+    local char = LocalPlayer.Character
+    if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChildOfClass("Humanoid") and char:FindFirstChildOfClass("Humanoid").Health > 0 then
+        return char
+    end
+    return nil
+end
+
+local function SafeTweenToFruit(targetFruit)
+    if not targetFruit or not targetFruit:FindFirstChild("Handle") then return "STOLEN" end
+    local char = getCharacter()
+    if not char then return "ERROR" end
+
+    local hrp = char.HumanoidRootPart
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    
+    if noclipConn then noclipConn:Disconnect() end
+    noclipConn = RunService.Stepped:Connect(function()
         local c = getCharacter()
         if c then
-            for _, part in pairs(c:GetDescendants()) do
+            for _, part in pairs(c:GetChildren()) do
                 if part:IsA("BasePart") then part.CanCollide = false end
             end
         end
     end)
 
-    local speed = 300
-    while true do
-        local currentChar, currentHrp = getCharacter()
-        if not currentChar or not currentHrp then
-            if noclipConn then noclipConn:Disconnect() end
-            return "RESET"
-        end
-
+    local targetPos = targetFruit.Handle.Position
+    local speed = 290
+    
+    while (hrp.Position - targetPos).Magnitude > 6 do
         if not _G.TaiHubActive then
             if noclipConn then noclipConn:Disconnect() end
             return "CANCEL"
         end
 
-        if not IsRealFruit(targetFruit) then
+        if not targetFruit or not targetFruit.Parent or not targetFruit:FindFirstChild("Handle") then
             if noclipConn then noclipConn:Disconnect() end
             return "STOLEN"
         end
 
-        local currentPos = currentHrp.Position
-        local targetPos = handle.Position
-        local dist = (targetPos - currentPos).Magnitude
+        targetPos = targetFruit.Handle.Position
+        local moveDir = (targetPos - hrp.Position).Unit
+        local distance = (targetPos - hrp.Position).Magnitude
+        local moveStep = math.min(distance, speed * task.wait())
 
-        if dist <= 1.5 then break end
+        hrp.CFrame = CFrame.new(hrp.Position + (moveDir * moveStep), targetPos)
+        hrp.Velocity = Vector3.zero
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Freefall) end
+    end
 
-        local dt = RunService.Heartbeat:Wait()
-        local moveStep = math.min(dist, speed * dt)
-        local alpha = moveStep / dist
-
-        currentHrp.CFrame = CFrame.new(currentPos:Lerp(targetPos, alpha), targetPos)
-        currentHrp.Velocity = Vector3.zero
-
-        DetailLabel.Text = string.format("🚀 Tweening... Distance: %dm", math.floor(dist / 3.57))
+    if targetFruit and targetFruit:FindFirstChild("Handle") then
+        hrp.CFrame = targetFruit.Handle.CFrame
     end
 
     if noclipConn then noclipConn:Disconnect() end
     return "SUCCESS"
 end
 
--- LỤM TRÁI ÉP PHÍM E VÀ CHẠM THỰC TẾ (REAL PICKUP)
-local function PickupAndStoreVerified(fruitData)
-    local fruitObj = fruitData.object
-    local handle = fruitData.handle
-    local char, hrp, hum = getCharacter()
-    if not char or not hrp or not handle then return end
+-- 7. ESP 3D
+local function ClearESP()
+    for _, item in pairs(activeESPs) do
+        if item.Connection then item.Connection:Disconnect() end
+        if item.Gui then item.Gui:Destroy() end
+    end
+    activeESPs = {}
+end
 
-    DetailLabel.Text = "⚡ Interacting & Picking Fruit..."
+local function CreateESP(fruitObj)
+    if not fruitObj or not fruitObj:FindFirstChild("Handle") then return end
+    local bg = Instance.new("BillboardGui")
+    bg.Name = "TaiHub_ESP_V8"
+    bg.Adornee = fruitObj.Handle
+    bg.Size = UDim2.new(0, 180, 0, 35)
+    bg.AlwaysOnTop = true
+    bg.Parent = ScreenGui
 
-    -- 1. Đặt nhân vật nằm đè ngay lên trái
-    hrp.CFrame = handle.CFrame * CFrame.new(0, 0.5, 0)
-    task.wait(0.05)
+    local txt = Instance.new("TextLabel")
+    txt.Size = UDim2.new(1, 0, 1, 0)
+    txt.BackgroundTransparency = 1
+    txt.TextColor3 = Color3.fromRGB(52, 211, 153)
+    txt.TextStrokeTransparency = 0
+    txt.TextSize = 13
+    txt.Font = Enum.Font.SourceSansBold
+    txt.Parent = bg
 
-    -- 2. Thử kích hoạt ProximityPrompt / Bấm phím E liên tục
-    local pickupStart = tick()
-    while (tick() - pickupStart) < 2.5 do
-        if not IsRealFruit(fruitObj) then break end
-
-        hrp.CFrame = handle.CFrame
-
-        -- Giả lập bấm phím E
-        VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-        task.wait(0.02)
-        VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-
-        -- Kích hoạt ProximityPrompt nếu có
-        for _, desc in pairs(fruitObj:GetDescendants()) do
-            if desc:IsA("ProximityPrompt") then
-                if fireproximityprompt then
-                    fireproximityprompt(desc)
-                end
-            end
+    local conn
+    conn = RunService.RenderStepped:Connect(function()
+        local char = getCharacter()
+        if char and char:FindFirstChild("HumanoidRootPart") and fruitObj and fruitObj.Parent and fruitObj:FindFirstChild("Handle") then
+            local dist = math.floor((char.HumanoidRootPart.Position - fruitObj.Handle.Position).Magnitude / 3.57)
+            txt.Text = "🦊 " .. fruitObj.Name .. "\n[" .. dist .. "m]"
+        else
+            bg:Destroy()
+            if conn then conn:Disconnect() end
         end
+    end)
+    table.insert(activeESPs, {Gui = bg, Connection = conn})
+end
 
-        -- Touch Interest
-        if firetouchinterest then
-            firetouchinterest(hrp, handle, 0)
-            task.wait(0.01)
-            firetouchinterest(hrp, handle, 1)
-        end
+-- 8. AUTO STORE FRUIT
+local function GetFruitInInventory()
+    local char = getCharacter()
+    if not char then return nil end
+    for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+        if item:IsA("Tool") and (string.find(item.Name, "Fruit") or FruitNameMap[item.Name]) then return item end
+    end
+    for _, item in pairs(char:GetChildren()) do
+        if item:IsA("Tool") and (string.find(item.Name, "Fruit") or FruitNameMap[item.Name]) then return item end
+    end
+    return nil
+end
 
-        -- Remote Pick
-        pcall(function()
-            local commF = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
-            if commF then commF:InvokeServer("PickFruit", fruitObj) end
-        end)
+local function PickupAndStore(fruitObj)
+    local char = getCharacter()
+    if not char or not fruitObj or not fruitObj:FindFirstChild("Handle") then return end
+    local hrp = char.HumanoidRootPart
+    local handle = fruitObj.Handle
 
-        if GetFruitInInventory() then break end
+    if firetouchinterest then
+        firetouchinterest(hrp, handle, 0)
+        task.wait(0.05)
+        firetouchinterest(hrp, handle, 1)
+    end
+
+    FruitLabel.Text = "📦 Storing Fruit..."
+    local targetTool = nil
+    local checkStart = tick()
+    while (tick() - checkStart) < 1.5 do
+        targetTool = GetFruitInInventory()
+        if targetTool then break end
         task.wait(0.1)
     end
 
-    local tool = GetFruitInInventory()
-    if not tool then
-        blacklistedFruits[fruitObj] = true
-        FruitLabel.Text = "⚠️ Fruit Stolen / Gone!"
-        SmartHopServer()
-        return
-    end
-
-    -- Cầm trái lên tay
-    DetailLabel.Text = "🖐️ Equipping Fruit..."
-    if char and tool.Parent ~= char then
-        if hum then hum:EquipTool(tool) else tool.Parent = char end
-    end
-    task.wait(0.2)
-
-    -- Cất trái rương
-    FruitLabel.Text = "🔒 Storing Fruit..."
-    local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
-
-    local storeAttempts = 0
-    local storeStart = tick()
-    
-    while GetFruitInInventory() and (tick() - storeStart) < 4 do
-        storeAttempts = storeAttempts + 1
-        StoreAttemptLabel.Text = "📦 Store Attempts: " .. storeAttempts
-        
-        local currentTool = GetFruitInInventory()
-        if currentTool and remote then
-            remote:InvokeServer("StoreFruit", currentTool.Name, currentTool)
+    if targetTool then
+        targetTool.Parent = char
+        task.wait(0.15)
+        local storeName = getStoreName(targetTool.Name)
+        local remote = ReplicatedStorage:FindFirstChild("Remotes") and ReplicatedStorage.Remotes:FindFirstChild("CommF_")
+        if remote then
+            local res = remote:InvokeServer("StoreFruit", storeName, targetTool)
+            task.wait(0.2)
+            if res == false or res == "Full" then blacklistedFruits[fruitObj] = true end
         end
-        task.wait(0.2)
-    end
-
-    if not GetFruitInInventory() then
-        FruitLabel.Text = "✅ Store Success!"
-        DetailLabel.Text = "🎉 Stored into inventory!"
-        task.wait(0.3)
     else
-        FruitLabel.Text = "⚠️ Store Failed (Full Inventory)!"
         blacklistedFruits[fruitObj] = true
     end
-
-    SmartHopServer()
 end
 
--- MAIN ENGINE LOOP
+-- 9. KHỦNG BỐ LỌC BOT & TÊN HACK
+local function IsBotName(name)
+    if not name then return true end
+    -- Nhận diện các định dạng tên hack ngẫu nhiên (chứa nhiều số/chữ cái ngẫu nhiên không có nghĩa)
+    if string.match(name, "^%d+%w+$") or string.match(name, "Bot") or string.match(name, "Auto") or string.len(name) > 16 then
+        return true
+    end
+    return false
+end
+
+-- 10. HOP SERVER VIP V8 (LỌC LÂU 1-3H, 1-6 NGƯỜI, BLACKLIST VĨNH VIỄN)
+local function ForceHopServer()
+    if not _G.TaiHubActive or isHopping then return end
+    isHopping = true
+    isProcessing = true
+    FruitLabel.Text = "🦊 Finding Aged Kitsune Server..."
+
+    -- Ghi nhớ Server ID hiện tại vào Blacklist để KHÔNG BAO GIỜ quay lại
+    getgenv().TaiHubData.BlacklistedServers[game.JobId] = true
+
+    task.spawn(function()
+        local targetServerId = nil
+        local cursor = ""
+        
+        pcall(function()
+            for page = 1, 8 do
+                if targetServerId or not _G.TaiHubActive then break end
+                local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Asc&limit=100" .. (cursor ~= "" and ("&cursor=" .. cursor) or "")
+                local rawData = game:HttpGet(url)
+                if rawData then
+                    local decoded = HttpService:JSONDecode(rawData)
+                    if decoded and decoded.data then
+                        cursor = decoded.nextPageCursor or ""
+                        for _, server in pairs(decoded.data) do
+                            -- ĐIỀU KIỆN LỌC KHẮC NGHIỆT (V8):
+                            -- 1. Chưa từng vào (Chưa có trong Blacklist)
+                            -- 2. Số người chơi: Từ 1 đến 6 người
+                            -- 3. Loại trừ Server có tên nghi vấn là Hack/Bot
+                            if server.id ~= game.JobId and not getgenv().TaiHubData.BlacklistedServers[server.id] and server.playing >= 1 and server.playing <= 6 then
+                                local hasBot = false
+                                if server.playerIds then
+                                    for _, pid in pairs(server.playerIds) do
+                                        if IsBotName(tostring(pid)) then
+                                            hasBot = true
+                                            break
+                                        end
+                                    end
+                                end
+
+                                if not hasBot then
+                                    targetServerId = server.id
+                                    getgenv().TaiHubData.BlacklistedServers[server.id] = true
+                                    FruitLabel.Text = "✈️ Hop -> " .. server.playing .. "P (Clean Aged)"
+                                    break
+                                end
+                            end
+                        end
+                    end
+                end
+                task.wait(0.15)
+            end
+        end)
+
+        if targetServerId and _G.TaiHubActive then
+            TeleportService:TeleportToPlaceInstance(game.PlaceId, targetServerId, LocalPlayer)
+        elseif _G.TaiHubActive then
+            FruitLabel.Text = "✈️ Fast Random Hop..."
+            TeleportService:Teleport(game.PlaceId, LocalPlayer)
+        end
+        
+        task.wait(5)
+        isHopping = false
+        isProcessing = false
+    end)
+end
+
+-- 11. TÌM TRÁI CÂY TRÊN MAP
+local function FindFruits()
+    local found = {}
+    for _, obj in pairs(Workspace:GetChildren()) do
+        if (obj:IsA("Tool") or obj:IsA("Model")) and string.find(obj.Name, "Fruit") and obj:FindFirstChild("Handle") then
+            if not blacklistedFruits[obj] then
+                table.insert(found, obj)
+            end
+        end
+    end
+    return found
+end
+
+-- 12. MAIN AUTOMATION LOOP
 task.spawn(function()
-    while task.wait(0.2) do
+    while task.wait(0.3) do
         if _G.TaiHubActive and not isProcessing and not isHopping then
-            local char, hrp = getCharacter()
-            if char and hrp then
-                local validFruits = GetValidFruitsOnMap()
+            local char = getCharacter()
+            if char then
+                local fruits = FindFruits()
+                ClearESP()
 
-                if #validFruits > 0 then
+                if #fruits > 0 then
                     isProcessing = true
-                    local targetData = validFruits[1]
+                    
+                    for _, f in pairs(fruits) do CreateESP(f) end
+                    local target = fruits[1]
+                    FruitLabel.Text = "🔥 FOUND: " .. target.Name
 
-                    FruitLabel.Text = "🔥 Target Locked!"
-                    TargetLabel.Text = "🍎 Target: " .. targetData.object.Name
+                    local result = SafeTweenToFruit(target)
 
-                    local flyResult = SafeTweenToFruit(targetData)
-                    if flyResult == "SUCCESS" then
-                        PickupAndStoreVerified(targetData)
+                    if result == "SUCCESS" then
+                        PickupAndStore(target)
+                        task.wait(0.3)
                         isProcessing = false
-                    elseif flyResult == "STOLEN" then
-                        blacklistedFruits[targetData.object] = true
-                        FruitLabel.Text = "⚠️ Target Gone!"
-                        DetailLabel.Text = "🔄 Checking Next Target..."
-                        isProcessing = false
+                    elseif result == "STOLEN" then
+                        FruitLabel.Text = "⚠️ Stolen! Fast Hop..."
+                        task.wait(0.2)
+                        ForceHopServer()
                     else
                         isProcessing = false
                     end
                 else
-                    FruitLabel.Text = "🌐 Map Clean!"
-                    TargetLabel.Text = "🍎 Target: None"
-                    DetailLabel.Text = "✈️ No fruit found. Hopping..."
-                    SmartHopServer()
+                    FruitLabel.Text = "🌐 No Fruit! Hopping..."
+                    ForceHopServer()
                 end
             end
         end
